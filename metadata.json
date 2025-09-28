@@ -1,0 +1,5 @@
+{
+  "name": "Cubel Cloud",
+  "description": "A simple website demonstrating role-based access controls. Users can log in to view applications they have access to, based on their assigned role.",
+  "requestFramePermissions": []
+}

@@ -1,0 +1,52 @@
+
+<div class="px-4 py-8">
+  <div class="max-w-7xl mx-auto">
+    <div class="text-center">
+      <h2 class="text-3xl font-extrabold text-slate-900 sm:text-4xl">
+        Your Applications
+      </h2>
+      <p class="mt-4 text-lg text-slate-600">
+        You have access to the following applications based on your '{{ currentUser()?.role }}' role.
+      </p>
+    </div>
+
+    @if (applications().length > 0) {
+      <div class="mt-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+        @for(app of applications(); track app.id) {
+          <a [href]="app.url" class="block bg-white rounded-lg shadow-lg overflow-hidden transform hover:-translate-y-1 transition-transform duration-300 ease-in-out">
+            <div class="p-6">
+              <div class="flex items-center">
+                <div class="flex-shrink-0 bg-primary/10 text-primary rounded-md p-3">
+                  <svg class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path [attr.d]="app.icon"></path>
+                  </svg>
+                </div>
+                <div class="ml-4">
+                  <h3 class="text-lg font-medium text-slate-900">{{ app.name }}</h3>
+                </div>
+              </div>
+              <p class="mt-4 text-sm text-slate-500">
+                {{ app.description }}
+              </p>
+            </div>
+            <div class="px-6 py-4 bg-gray-50 text-right">
+                <span class="text-sm font-semibold text-primary hover:text-primary-dark">Launch App &rarr;</span>
+            </div>
+          </a>
+        }
+      </div>
+    } @else {
+      <div class="mt-12 text-center">
+        <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-yellow-100">
+          <svg class="h-6 w-6 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+          </svg>
+        </div>
+        <h3 class="mt-2 text-lg font-medium text-slate-900">No Applications Found</h3>
+        <p class="mt-1 text-sm text-slate-500">
+          There are no applications available for your current role.
+        </p>
+      </div>
+    }
+  </div>
+</div>
