@@ -17,6 +17,10 @@ export const APP_ROUTES: Routes = [
     loadComponent: () => import('./components/login/login.component').then(c => c.LoginComponent)
   },
   {
+    path: 'about',
+    loadComponent: () => import('./components/about/about.component').then(c => c.AboutComponent)
+  },
+  {
     path: 'applications',
     loadComponent: () => import('./components/applications/applications.component').then(c => c.ApplicationsComponent),
     canActivate: [authGuard]

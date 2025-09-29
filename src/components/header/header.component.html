@@ -1,34 +1,58 @@
-<header class="bg-white shadow-md sticky top-0 z-50">
-  <nav class="container mx-auto px-4 sm:px-6 lg:px-8">
+<header class="bg-white dark:bg-dark-bg shadow-md sticky top-0 z-50">
+  <nav class="w-full px-4 sm:px-6 lg:px-8">
     <div class="flex items-center justify-between h-16">
       <div class="flex items-center">
         <a routerLink="/home" class="flex-shrink-0 flex items-center gap-2 text-primary hover:opacity-80 transition-opacity">
-          <img ngSrc="assets/logo.png" alt="RBAC Portal Logo" width="32" height="32" class="w-8 h-8">
-          <span class="font-bold text-xl text-slate-800">RBAC Portal</span>
+          <img ngSrc="assets/logo.png" alt="Cubel Cloud Logo" width="48" height="48" class="w-12 h-12">
+          <span class="font-bold text-xl text-gradient">Cubel Cloud</span>
         </a>
       </div>
       <div class="flex items-center">
         <div class="hidden md:block">
           <div class="ml-10 flex items-baseline space-x-4">
-            <a routerLink="/home" routerLinkActive="text-primary border-primary" [routerLinkActiveOptions]="{exact: true}" class="text-gray-600 hover:text-primary px-3 py-2 rounded-md text-sm font-medium border-b-2 border-transparent">Home</a>
+            <a routerLink="/home" routerLinkActive="text-primary border-primary" [routerLinkActiveOptions]="{exact: true}" class="text-gray-600 dark:text-slate-300 hover:text-primary px-3 py-2 rounded-md text-sm font-medium border-b-2 border-transparent">Home</a>
+            <a routerLink="/about" routerLinkActive="text-primary border-primary" class="text-gray-600 dark:text-slate-300 hover:text-primary px-3 py-2 rounded-md text-sm font-medium border-b-2 border-transparent">About</a>
             @if(authService.isLoggedIn()) {
-              <a routerLink="/applications" routerLinkActive="text-primary border-primary" class="text-gray-600 hover:text-primary px-3 py-2 rounded-md text-sm font-medium border-b-2 border-transparent">My Applications</a>
+              <a routerLink="/applications" routerLinkActive="text-primary border-primary" class="text-gray-600 dark:text-slate-300 hover:text-primary px-3 py-2 rounded-md text-sm font-medium border-b-2 border-transparent">My Applications</a>
             }
           </div>
         </div>
         <div class="ml-4">
-          @if (authService.isLoggedIn()) {
-            <div class="flex items-center gap-4">
-               <span class="text-sm text-slate-600 hidden sm:inline">Welcome, {{ authService.currentUser()?.name }}</span>
-              <button (click)="authService.logout()" class="bg-slate-200 text-slate-800 hover:bg-slate-300 transition-colors px-4 py-2 rounded-md text-sm font-medium">
+          <div class="flex items-center gap-4">
+            <!-- Theme Toggle -->
+            <button
+              (click)="themeService.toggleTheme()"
+              class="p-2 rounded-md text-slate-600 hover:text-primary dark:text-slate-400 dark:hover:text-primary transition-colors"
+              [attr.aria-label]="themeService.isDarkMode() ? 'Switch to light mode' : 'Switch to dark mode'"
+            >
+              @if (themeService.isDarkMode()) {
+                <!-- Sun icon for light mode -->
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                </svg>
+              } @else {
+                <!-- Moon icon for dark mode -->
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
+                </svg>
+              }
+            </button>
+
+            @if (authService.isLoggedIn()) {
+              <img
+                [src]="authService.getGravatarUrl(authService.currentUser()?.email || '')"
+                [alt]="authService.currentUser()?.name + ' avatar'"
+                class="w-8 h-8 rounded-full border-2 border-slate-300 dark:border-slate-600"
+              />
+              <button (click)="authService.logout()" class="bg-slate-200 text-slate-800 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600 transition-colors px-4 py-2 rounded-md text-sm font-medium">
                 Logout
               </button>
-            </div>
-          } @else {
-            <a routerLink="/login" class="bg-primary text-white hover:bg-primary-dark transition-colors px-4 py-2 rounded-md text-sm font-medium">
-              Login
-            </a>
-          }
+            } @else {
+              <a routerLink="/login" class="bg-gradient-diagonal hover:bg-none hover:bg-primary text-white transition-all px-4 py-2 rounded-md text-sm font-medium">
+                Login
+              </a>
+            }
+          </div>
         </div>
       </div>
     </div>

@@ -1,7 +1,8 @@
 import { Component, ChangeDetectionStrategy, inject } from '@angular/core';
-import { RouterLink, RouterLinkActive } from '@angular/router';
+import { RouterLink, RouterLinkActive, Router } from '@angular/router';
 import { NgOptimizedImage } from '@angular/common';
 import { AuthService } from '../../services/auth.service';
+import { ThemeService } from '../../services/theme.service';
 
 @Component({
   selector: 'app-header',
@@ -11,4 +12,10 @@ import { AuthService } from '../../services/auth.service';
 })
 export class HeaderComponent {
   authService = inject(AuthService);
+  router = inject(Router);
+  themeService = inject(ThemeService);
+
+  get isHomePage(): boolean {
+    return this.router.url === '/home' || this.router.url === '/';
+  }
 }
