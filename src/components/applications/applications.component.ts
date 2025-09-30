@@ -22,7 +22,8 @@ export class ApplicationsComponent implements OnInit {
   ngOnInit() {
     const user = this.currentUser();
     if (user) {
-      const apps = this.applicationService.getApplicationsForRole(user.role as UserRole);
+      // Use the new getApplicationsForUser which respects the apps claim from OIDC
+      const apps = this.applicationService.getApplicationsForUser(user);
       this.applications.set(apps);
     }
   }

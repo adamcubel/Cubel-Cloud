@@ -30,9 +30,9 @@
   </p>
   <div class="mt-8 flex justify-center">
     <div class="inline-flex rounded-md shadow">
-      <a routerLink="/login" class="inline-flex items-center justify-center px-8 py-3 text-base font-medium rounded-md text-white bg-gradient-diagonal hover:bg-none hover:bg-primary">
+      <button (click)="authService.login()" class="inline-flex items-center justify-center px-8 py-3 text-base font-medium rounded-md text-white bg-gradient-diagonal hover:bg-none hover:bg-primary">
         Get started
-      </a>
+      </button>
     </div>
   </div>
 </div>

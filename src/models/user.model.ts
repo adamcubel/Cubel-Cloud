@@ -6,4 +6,5 @@ export interface User {
   name: string;
   email: string;
   role: UserRole;
+  apps?: string[]; // Array of application identifiers from OIDC claims
 }

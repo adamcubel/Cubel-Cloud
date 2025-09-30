@@ -21,6 +21,10 @@ export const APP_ROUTES: Routes = [
     loadComponent: () => import('./components/about/about.component').then(c => c.AboutComponent)
   },
   {
+    path: 'auth/callback',
+    loadComponent: () => import('./components/auth-callback/auth-callback.component').then(c => c.AuthCallbackComponent)
+  },
+  {
     path: 'applications',
     loadComponent: () => import('./components/applications/applications.component').then(c => c.ApplicationsComponent),
     canActivate: [authGuard]

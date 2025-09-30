@@ -48,9 +48,9 @@
                 Logout
               </button>
             } @else {
-              <a routerLink="/login" class="bg-gradient-diagonal hover:bg-none hover:bg-primary text-white transition-all px-4 py-2 rounded-md text-sm font-medium">
+              <button (click)="authService.login()" class="bg-gradient-diagonal hover:bg-none hover:bg-primary text-white transition-all px-4 py-2 rounded-md text-sm font-medium">
                 Login
-              </a>
+              </button>
             }
           </div>
         </div>

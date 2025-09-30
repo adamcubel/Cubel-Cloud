@@ -1,0 +1,324 @@
+# .github/workflows/pr-checks.yml
+name: CI/CD - Pre-commit, Docker Build, and Release
+
+on:
+  pull_request:
+    branches:
+      - main
+      - develop
+    types: [opened, synchronize, reopened, edited]
+  push:
+    branches:
+      - main
+
+jobs:
+  validate-pr-title:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Check PR title for version tag
+        run: |
+          PR_TITLE="${{ github.event.pull_request.title }}"
+          echo "PR Title: $PR_TITLE"
+          
+          if [[ "$PR_TITLE" =~ \[major\] ]]; then
+            echo "✓ [major] tag found - will increment major version"
+            exit 0
+          elif [[ "$PR_TITLE" =~ \[minor\] ]]; then
+            echo "✓ [minor] tag found - will increment minor version"
+            exit 0
+          elif [[ "$PR_TITLE" =~ \[patch\] ]]; then
+            echo "✓ [patch] tag found - will increment patch version"
+            exit 0
+          else
+            echo "✗ PR title must contain one of: [major], [minor], or [patch]"
+            echo ""
+            echo "Examples:"
+            echo "  - [major] Breaking change: New authentication system"
+            echo "  - [minor] Add user profile feature"
+            echo "  - [patch] Fix navigation bug"
+            echo ""
+            echo "Please update your PR title to include a version tag."
+            exit 1
+          fi
+
+  pre-commit-checks:
+    runs-on: ubuntu-latest
+    needs: [validate-pr-title]
+    if: |
+      always() && 
+      (github.event_name == 'push' || needs.validate-pr-title.result == 'success')
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch all history for pre-commit
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install pre-commit
+        run: |
+          pip install pre-commit
+          pre-commit --version
+
+      - name: Cache pre-commit hooks
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pre-commit
+          key: pre-commit-${{ runner.os }}-${{ hashFiles('**/.pre-commit-config.yaml') }}
+          restore-keys: |
+            pre-commit-${{ runner.os }}-
+
+      - name: Run pre-commit checks
+        run: |
+          pre-commit run --all-files --show-diff-on-failure
+
+  docker-build:
+    runs-on: ubuntu-latest
+    needs: pre-commit-checks
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: false
+          tags: ${{ github.repository }}:pr-${{ github.event.pull_request.number }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          load: true
+
+      - name: Test Docker image
+        run: |
+          # Start the container in detached mode
+          docker run -d --name angular-app -p 8080:80 ${{ github.repository }}:pr-${{ github.event.pull_request.number }}
+          
+          # Wait for the application to start
+          echo "Waiting for Angular application to start..."
+          sleep 10
+          
+          # Check if container is still running
+          if [ "$(docker ps -q -f name=angular-app)" ]; then
+            echo "✓ Container is running"
+          else
+            echo "✗ Container failed to start"
+            docker logs angular-app
+            exit 1
+          fi
+          
+          # Test HTTP endpoint
+          echo "Testing HTTP endpoint..."
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080)
+          
+          if [ "$HTTP_STATUS" -eq 200 ]; then
+            echo "✓ Angular application is responding (HTTP $HTTP_STATUS)"
+          else
+            echo "✗ Angular application returned HTTP $HTTP_STATUS"
+            docker logs angular-app
+            exit 1
+          fi
+          
+          # Check if Angular app is served (look for common Angular markers)
+          RESPONSE=$(curl -s http://localhost:8080)
+          if echo "$RESPONSE" | grep -q "ng-version\|<app-root>\|angular"; then
+            echo "✓ Angular application content detected"
+          else
+            echo "⚠ Warning: Angular markers not found in response"
+          fi
+          
+          # Cleanup
+          docker stop angular-app
+          docker rm angular-app
+          
+          echo "✓ All tests passed!"
+
+  release-and-push:
+    runs-on: ubuntu-latest
+    needs: pre-commit-checks
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Get last merge commit message
+        id: merge_info
+        run: |
+          # Get the most recent merge commit title
+          MERGE_TITLE=$(git log --merges --format=%s -n 1)
+          echo "merge_title=${MERGE_TITLE}" >> $GITHUB_OUTPUT
+          echo "Last merge commit: ${MERGE_TITLE}"
+
+      - name: Get current version from tags
+        id: current_version
+        run: |
+          # Get the latest version tag, default to v0.0.0 if none exist
+          LATEST_TAG=$(git tag -l "v*.*.*" | sort -V | tail -n 1)
+          
+          if [ -z "$LATEST_TAG" ]; then
+            echo "No existing version tags found, starting at v0.0.0"
+            MAJOR=0
+            MINOR=0
+            PATCH=0
+          else
+            echo "Latest tag: $LATEST_TAG"
+            # Remove 'v' prefix and split into components
+            VERSION_NUMBER=${LATEST_TAG#v}
+            MAJOR=$(echo $VERSION_NUMBER | cut -d. -f1)
+            MINOR=$(echo $VERSION_NUMBER | cut -d. -f2)
+            PATCH=$(echo $VERSION_NUMBER | cut -d. -f3)
+          fi
+          
+          echo "current_major=${MAJOR}" >> $GITHUB_OUTPUT
+          echo "current_minor=${MINOR}" >> $GITHUB_OUTPUT
+          echo "current_patch=${PATCH}" >> $GITHUB_OUTPUT
+          echo "Current version: v${MAJOR}.${MINOR}.${PATCH}"
+
+      - name: Calculate new version
+        id: version
+        run: |
+          MAJOR=${{ steps.current_version.outputs.current_major }}
+          MINOR=${{ steps.current_version.outputs.current_minor }}
+          PATCH=${{ steps.current_version.outputs.current_patch }}
+          
+          MERGE_TITLE="${{ steps.merge_info.outputs.merge_title }}"
+          
+          echo "Analyzing merge title: $MERGE_TITLE"
+          
+          # Determine version bump based on PR title in merge commit
+          if [[ "$MERGE_TITLE" =~ \[major\] ]]; then
+            echo "🚀 [major] tag detected - incrementing major version"
+            MAJOR=$((MAJOR + 1))
+            MINOR=0
+            PATCH=0
+          elif [[ "$MERGE_TITLE" =~ \[minor\] ]]; then
+            echo "✨ [minor] tag detected - incrementing minor version"
+            MINOR=$((MINOR + 1))
+            PATCH=0
+          elif [[ "$MERGE_TITLE" =~ \[patch\] ]]; then
+            echo "🔧 [patch] tag detected - incrementing patch version"
+            PATCH=$((PATCH + 1))
+          else
+            echo "⚠️  No version tag found in merge commit, defaulting to patch increment"
+            PATCH=$((PATCH + 1))
+          fi
+          
+          # Get the short commit SHA
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          
+          # Get the current date
+          DATE=$(date +'%Y%m%d')
+          
+          VERSION="v${MAJOR}.${MINOR}.${PATCH}"
+          FULL_TAG="${VERSION}-${DATE}-${SHORT_SHA}"
+          
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "full_tag=${FULL_TAG}" >> $GITHUB_OUTPUT
+          echo "short_sha=${SHORT_SHA}" >> $GITHUB_OUTPUT
+          echo "major=${MAJOR}" >> $GITHUB_OUTPUT
+          echo "minor=${MINOR}" >> $GITHUB_OUTPUT
+          echo "patch=${PATCH}" >> $GITHUB_OUTPUT
+          
+          echo "📦 New version: ${VERSION}"
+          echo "🏷️  Full tag: ${FULL_TAG}"
+
+      - name: Create GitHub Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.version.outputs.version }}
+          release_name: Release ${{ steps.version.outputs.version }}
+          body: |
+            ## Release ${{ steps.version.outputs.version }}
+            
+            **Version:** ${{ steps.version.outputs.major }}.${{ steps.version.outputs.minor }}.${{ steps.version.outputs.patch }}
+            **Commit:** ${{ github.sha }}
+            **Author:** ${{ github.actor }}
+            **Build ID:** ${{ steps.version.outputs.full_tag }}
+            
+            ### Changes
+            ${{ steps.merge_info.outputs.merge_title }}
+            
+            ### Docker Images
+            ```bash
+            # Pull specific version
+            docker pull ${{ secrets.DOCKER_USERNAME }}/${{ github.event.repository.name }}:${{ steps.version.outputs.version }}
+            
+            # Pull with build ID
+            docker pull ${{ secrets.DOCKER_USERNAME }}/${{ github.event.repository.name }}:${{ steps.version.outputs.full_tag }}
+            
+            # Pull latest
+            docker pull ${{ secrets.DOCKER_USERNAME }}/${{ github.event.repository.name }}:latest
+            ```
+          draft: false
+          prerelease: false
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/${{ github.event.repository.name }}:${{ steps.version.outputs.full_tag }}
+            ${{ secrets.DOCKER_USERNAME }}/${{ github.event.repository.name }}:${{ steps.version.outputs.version }}
+            ${{ secrets.DOCKER_USERNAME }}/${{ github.event.repository.name }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Test Docker image from registry
+        run: |
+          # Pull and test the image from Docker Hub
+          docker pull ${{ secrets.DOCKER_USERNAME }}/${{ github.event.repository.name }}:latest
+          
+          # Start the container
+          docker run -d --name angular-app -p 8080:80 ${{ secrets.DOCKER_USERNAME }}/${{ github.event.repository.name }}:latest
+          
+          # Wait for startup
+          sleep 10
+          
+          # Test endpoint
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080)
+          
+          if [ "$HTTP_STATUS" -eq 200 ]; then
+            echo "✓ Published image is working correctly"
+          else
+            echo "✗ Published image test failed"
+            exit 1
+          fi
+          
+          # Cleanup
+          docker stop angular-app
+          docker rm angular-app
+
+      - name: Image published
+        run: |
+          echo "🚀 Docker image published successfully!"
+          echo ""
+          echo "📦 Version: ${{ steps.version.outputs.version }}"
+          echo ""
+          echo "🏷️  Tags:"
+          echo "  - ${{ secrets.DOCKER_USERNAME }}/${{ github.event.repository.name }}:${{ steps.version.outputs.full_tag }}"
+          echo "  - ${{ secrets.DOCKER_USERNAME }}/${{ github.event.repository.name }}:${{ steps.version.outputs.version }}"
+          echo "  - ${{ secrets.DOCKER_USERNAME }}/${{ github.event.repository.name }}:latest"
