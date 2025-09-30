@@ -1,11 +1,11 @@
-import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { Observable, throwError } from 'rxjs';
-import { catchError } from 'rxjs/operators';
-import { OidcPublicConfig } from '../models/oidc-config.model';
+import { Injectable } from "@angular/core";
+import { HttpClient } from "@angular/common/http";
+import { Observable, throwError } from "rxjs";
+import { catchError } from "rxjs/operators";
+import { OidcPublicConfig } from "../models/oidc-config.model";
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: "root",
 })
 export class OidcConfigService {
   private config: OidcPublicConfig | null = null;
@@ -13,11 +13,13 @@ export class OidcConfigService {
   constructor(private http: HttpClient) {}
 
   loadConfig(): Observable<OidcPublicConfig> {
-    return this.http.get<OidcPublicConfig>('/api/oidc/config').pipe(
-      catchError(error => {
-        console.error('Failed to load OIDC configuration:', error);
-        return throwError(() => new Error('OIDC configuration could not be loaded'));
-      })
+    return this.http.get<OidcPublicConfig>("/api/oidc/config").pipe(
+      catchError((error) => {
+        console.error("Failed to load OIDC configuration:", error);
+        return throwError(
+          () => new Error("OIDC configuration could not be loaded"),
+        );
+      }),
     );
   }
 
@@ -30,8 +32,10 @@ export class OidcConfigService {
   }
 
   isConfigured(): boolean {
-    return this.config !== null &&
-           this.config.issuer !== '' &&
-           this.config.clientId !== '';
+    return (
+      this.config !== null &&
+      this.config.issuer !== "" &&
+      this.config.clientId !== ""
+    );
   }
 }

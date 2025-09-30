@@ -1,16 +1,21 @@
-
-import { Component, ChangeDetectionStrategy, inject, signal, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { AuthService } from '../../services/auth.service';
-import { ApplicationService } from '../../services/application.service';
-import { Application } from '../../models/application.model';
-import { UserRole } from '../../models/user.model';
+import {
+  Component,
+  ChangeDetectionStrategy,
+  inject,
+  signal,
+  OnInit,
+} from "@angular/core";
+import { CommonModule } from "@angular/common";
+import { AuthService } from "../../services/auth.service";
+import { ApplicationService } from "../../services/application.service";
+import { Application } from "../../models/application.model";
+import { UserRole } from "../../models/user.model";
 
 @Component({
-  selector: 'app-applications',
-  templateUrl: './applications.component.html',
+  selector: "app-applications",
+  templateUrl: "./applications.component.html",
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule]
+  imports: [CommonModule],
 })
 export class ApplicationsComponent implements OnInit {
   authService = inject(AuthService);

@@ -1,14 +1,13 @@
+import "@angular/compiler";
+import { bootstrapApplication } from "@angular/platform-browser";
+import { provideRouter, withHashLocation } from "@angular/router";
+import { provideZonelessChangeDetection } from "@angular/core";
+import { provideHttpClient, withInterceptors } from "@angular/common/http";
+import { provideOAuthClient } from "angular-oauth2-oidc";
 
-import '@angular/compiler';
-import { bootstrapApplication } from '@angular/platform-browser';
-import { provideRouter, withHashLocation } from '@angular/router';
-import { provideZonelessChangeDetection } from '@angular/core';
-import { provideHttpClient, withInterceptors } from '@angular/common/http';
-import { provideOAuthClient } from 'angular-oauth2-oidc';
-
-import { AppComponent } from './src/app.component';
-import { APP_ROUTES } from './src/app.routes';
-import { tokenEndpointInterceptor } from './src/interceptors/token-endpoint.interceptor';
+import { AppComponent } from "./src/app.component";
+import { APP_ROUTES } from "./src/app.routes";
+import { tokenEndpointInterceptor } from "./src/interceptors/token-endpoint.interceptor";
 
 bootstrapApplication(AppComponent, {
   providers: [

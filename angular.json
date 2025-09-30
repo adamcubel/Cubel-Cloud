@@ -18,9 +18,7 @@
             },
             "browser": "index.tsx",
             "tsConfig": "tsconfig.json",
-            "assets": [
-              "assets"
-            ]
+            "assets": ["assets"]
           },
           "configurations": {
             "production": {

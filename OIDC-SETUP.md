@@ -102,7 +102,7 @@ npm run dev
 ### Docker Compose
 
 ```yaml
-version: '3.8'
+version: "3.8"
 
 services:
   cubel-cloud:
