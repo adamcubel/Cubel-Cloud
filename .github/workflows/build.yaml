@@ -92,19 +92,51 @@ jobs:
         with:
           context: .
           push: false
+          target: production
           tags: ${{ github.repository_owner }}/cubel-cloud:pr-${{ github.event.pull_request.number }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
           load: true
 
+      - name: Create test OIDC config
+        run: |
+          mkdir -p test-config
+          cat > test-config/oidc.json << 'EOF'
+          {
+            "issuer": "https://idp.example.com/realms/test",
+            "clientId": "test-client",
+            "clientSecret": "test-secret",
+            "redirectUri": "http://localhost:8080/auth/callback",
+            "responseType": "id_token",
+            "scope": "openid profile email",
+            "requireHttps": false,
+            "showDebugInformation": false,
+            "strictDiscoveryDocumentValidation": false,
+            "skipIssuerCheck": true,
+            "disablePKCE": true,
+            "clearHashAfterLogin": true,
+            "postLogoutRedirectUri": "http://localhost:8080",
+            "customQueryParams": {}
+          }
+          EOF
+
       - name: Test Docker image
         run: |
-          # Start the container in detached mode
-          docker run -d --name angular-app -p 8080:80 ${{ github.repository_owner }}/cubel-cloud:pr-${{ github.event.pull_request.number }}
+          # Start the container in detached mode with test config
+          docker run -d \
+            --name angular-app \
+            -p 8080:80 \
+            -p 3001:3001 \
+            -v "$(pwd)/test-config:/app/config:ro" \
+            ${{ github.repository_owner }}/cubel-cloud:pr-${{ github.event.pull_request.number }}
 
-          # Wait for the application to start
-          echo "Waiting for Angular application to start..."
-          sleep 10
+          # Wait for services to start
+          echo "Waiting for services to start..."
+          sleep 15
+
+          # Show container logs for debugging
+          echo "Container logs:"
+          docker logs angular-app
 
           # Check if container is still running
           if [ "$(docker ps -q -f name=angular-app)" ]; then
@@ -115,9 +147,20 @@ jobs:
             exit 1
           fi
 
-          # Test HTTP endpoint
-          echo "Testing HTTP endpoint..."
-          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080)
+          # Test OIDC API health endpoint
+          echo "Testing OIDC API health endpoint..."
+          API_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3001/health || echo "000")
+          if [ "$API_STATUS" -eq 200 ]; then
+            echo "✓ OIDC API is responding (HTTP $API_STATUS)"
+          else
+            echo "✗ OIDC API health check failed (HTTP $API_STATUS)"
+            docker logs angular-app
+            exit 1
+          fi
+
+          # Test nginx/Angular frontend
+          echo "Testing Angular frontend..."
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080 || echo "000")
 
           if [ "$HTTP_STATUS" -eq 200 ]; then
             echo "✓ Angular application is responding (HTTP $HTTP_STATUS)"
@@ -127,12 +170,23 @@ jobs:
             exit 1
           fi
 
-          # Check if Angular app is served (look for common Angular markers)
+          # Check if Angular app is served correctly
           RESPONSE=$(curl -s http://localhost:8080)
-          if echo "$RESPONSE" | grep -q "ng-version\|<app-root>\|angular"; then
+          if echo "$RESPONSE" | grep -q "<app-root>\|Cubel Cloud"; then
             echo "✓ Angular application content detected"
           else
-            echo "⚠ Warning: Angular markers not found in response"
+            echo "✗ Angular markers not found in response"
+            echo "Response preview: $(echo "$RESPONSE" | head -n 20)"
+            exit 1
+          fi
+
+          # Test API proxy through nginx
+          echo "Testing API proxy..."
+          API_PROXY_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/api/oidc/config || echo "000")
+          if [ "$API_PROXY_STATUS" -eq 200 ]; then
+            echo "✓ API proxy is working (HTTP $API_PROXY_STATUS)"
+          else
+            echo "⚠ Warning: API proxy returned HTTP $API_PROXY_STATUS"
           fi
 
           # Cleanup
