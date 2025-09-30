@@ -92,7 +92,7 @@ jobs:
         with:
           context: .
           push: false
-          tags: ${{ github.repository }}:pr-${{ github.event.pull_request.number }}
+          tags: ${{ github.repository_owner }}/cubel-cloud:pr-${{ github.event.pull_request.number }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
           load: true
@@ -100,7 +100,7 @@ jobs:
       - name: Test Docker image
         run: |
           # Start the container in detached mode
-          docker run -d --name angular-app -p 8080:80 ${{ github.repository }}:pr-${{ github.event.pull_request.number }}
+          docker run -d --name angular-app -p 8080:80 ${{ github.repository_owner }}/cubel-cloud:pr-${{ github.event.pull_request.number }}
 
           # Wait for the application to start
           echo "Waiting for Angular application to start..."
@@ -264,13 +264,13 @@ jobs:
             ### Docker Images
             ```bash
             # Pull specific version
-            docker pull ${{ secrets.DOCKER_USERNAME }}/${{ github.event.repository.name }}:${{ steps.version.outputs.version }}
+            docker pull ${{ secrets.DOCKER_USERNAME }}/cubel-cloud:${{ steps.version.outputs.version }}
 
             # Pull with build ID
-            docker pull ${{ secrets.DOCKER_USERNAME }}/${{ github.event.repository.name }}:${{ steps.version.outputs.full_tag }}
+            docker pull ${{ secrets.DOCKER_USERNAME }}/cubel-cloud:${{ steps.version.outputs.full_tag }}
 
             # Pull latest
-            docker pull ${{ secrets.DOCKER_USERNAME }}/${{ github.event.repository.name }}:latest
+            docker pull ${{ secrets.DOCKER_USERNAME }}/cubel-cloud:latest
             ```
           draft: false
           prerelease: false
@@ -281,19 +281,19 @@ jobs:
           context: .
           push: true
           tags: |
-            ${{ secrets.DOCKER_USERNAME }}/${{ github.event.repository.name }}:${{ steps.version.outputs.full_tag }}
-            ${{ secrets.DOCKER_USERNAME }}/${{ github.event.repository.name }}:${{ steps.version.outputs.version }}
-            ${{ secrets.DOCKER_USERNAME }}/${{ github.event.repository.name }}:latest
+            ${{ secrets.DOCKER_USERNAME }}/cubel-cloud:${{ steps.version.outputs.full_tag }}
+            ${{ secrets.DOCKER_USERNAME }}/cubel-cloud:${{ steps.version.outputs.version }}
+            ${{ secrets.DOCKER_USERNAME }}/cubel-cloud:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
       - name: Test Docker image from registry
         run: |
           # Pull and test the image from Docker Hub
-          docker pull ${{ secrets.DOCKER_USERNAME }}/${{ github.event.repository.name }}:latest
+          docker pull ${{ secrets.DOCKER_USERNAME }}/cubel-cloud:latest
 
           # Start the container
-          docker run -d --name angular-app -p 8080:80 ${{ secrets.DOCKER_USERNAME }}/${{ github.event.repository.name }}:latest
+          docker run -d --name angular-app -p 8080:80 ${{ secrets.DOCKER_USERNAME }}/cubel-cloud:latest
 
           # Wait for startup
           sleep 10
