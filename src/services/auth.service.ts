@@ -4,6 +4,7 @@ import { OAuthService, AuthConfig } from "angular-oauth2-oidc";
 import { filter, firstValueFrom } from "rxjs";
 import { User, UserRole } from "../models/user.model";
 import { OidcConfigService } from "./oidc-config.service";
+import { ApplicationRegistryConfigService } from "./application-registry-config.service";
 
 @Injectable({
   providedIn: "root",
@@ -12,6 +13,9 @@ export class AuthService {
   private router = inject(Router);
   private oauthService = inject(OAuthService);
   private oidcConfigService = inject(OidcConfigService);
+  private applicationRegistryConfigService = inject(
+    ApplicationRegistryConfigService,
+  );
 
   currentUser = signal<User | null>(null);
   isLoggedIn = computed(() => !!this.currentUser());
@@ -35,7 +39,29 @@ export class AuthService {
     this.isConfiguring.set(true);
 
     try {
-      const config = await firstValueFrom(this.oidcConfigService.loadConfig());
+      // Load both OIDC config and application registry config in parallel
+      const [config, appRegistryConfig] = await Promise.all([
+        firstValueFrom(this.oidcConfigService.loadConfig()),
+        firstValueFrom(
+          this.applicationRegistryConfigService.loadConfig(),
+        ).catch((error) => {
+          console.warn(
+            "Application registry configuration not available, using default:",
+            error.message,
+          );
+          return null;
+        }),
+      ]);
+
+      // Store application registry config if loaded
+      if (appRegistryConfig) {
+        this.applicationRegistryConfigService.setConfig(appRegistryConfig);
+        console.log(
+          "[AuthService] Loaded application registry with",
+          appRegistryConfig.applications.length,
+          "applications",
+        );
+      }
 
       if (!config) {
         console.warn(

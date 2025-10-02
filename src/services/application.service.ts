@@ -1,9 +1,10 @@
 import { Injectable } from "@angular/core";
 import { Application } from "../models/application.model";
 import { User, UserRole } from "../models/user.model";
+import { ApplicationRegistryConfigService } from "./application-registry-config.service";
 
-// Map of application identifiers to their full application details
-const APPLICATION_REGISTRY: Record<string, Application> = {
+// Default/fallback application registry
+const DEFAULT_APPLICATION_REGISTRY: Record<string, Application> = {
   rocketchat: {
     id: "rocketchat",
     name: "Rocket.Chat",
@@ -45,15 +46,38 @@ const APPLICATION_REGISTRY: Record<string, Application> = {
   providedIn: "root",
 })
 export class ApplicationService {
+  constructor(
+    private applicationRegistryConfigService: ApplicationRegistryConfigService,
+  ) {}
+  /**
+   * Get the application registry (from config or fallback to default)
+   */
+  private getApplicationRegistry(): Record<string, Application> {
+    const config = this.applicationRegistryConfigService.getConfig();
+    if (config && config.applications) {
+      // Convert array to record for lookup
+      return config.applications.reduce(
+        (acc, app) => {
+          acc[app.id] = app;
+          return acc;
+        },
+        {} as Record<string, Application>,
+      );
+    }
+    return DEFAULT_APPLICATION_REGISTRY;
+  }
+
   /**
    * Get applications for a user based on their apps claim from OIDC token
    * Falls back to role-based filtering if no apps claim is present
    */
   getApplicationsForUser(user: User): Application[] {
+    const registry = this.getApplicationRegistry();
+
     // If user has apps claim, use that
     if (user.apps && user.apps.length > 0) {
       return user.apps
-        .map((appId) => APPLICATION_REGISTRY[appId])
+        .map((appId) => registry[appId])
         .filter((app) => app !== undefined);
     }
 
@@ -66,7 +90,7 @@ export class ApplicationService {
    * @deprecated Use getApplicationsForUser instead
    */
   getApplicationsForRole(role: UserRole): Application[] {
-    const allApps = Object.values(APPLICATION_REGISTRY);
+    const allApps = Object.values(this.getApplicationRegistry());
 
     switch (role) {
       case "admin":
@@ -86,6 +110,6 @@ export class ApplicationService {
    * Get all available applications in the registry
    */
   getAllApplications(): Application[] {
-    return Object.values(APPLICATION_REGISTRY);
+    return Object.values(this.getApplicationRegistry());
   }
 }

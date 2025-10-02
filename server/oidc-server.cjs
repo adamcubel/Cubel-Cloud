@@ -145,6 +145,29 @@ app.post("/api/oidc/token", async (req, res) => {
   }
 });
 
+app.get("/api/applications/config", (req, res) => {
+  const configPath = path.join(__dirname, "../config/applications.json");
+  const config = loadConfigSafely(configPath);
+
+  if (!config) {
+    return res.status(404).json({
+      error: "Application registry configuration not found",
+      message:
+        "Please create config/applications.json from config/applications.example.json",
+    });
+  }
+
+  // Validate that applications array exists
+  if (!config.applications || !Array.isArray(config.applications)) {
+    return res.status(500).json({
+      error: "Invalid application registry configuration",
+      message: "Configuration must contain an 'applications' array",
+    });
+  }
+
+  res.json(config);
+});
+
 app.get("/health", (req, res) => {
   res.json({ status: "healthy", timestamp: new Date().toISOString() });
 });

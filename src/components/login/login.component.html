@@ -10,8 +10,7 @@
       </h2>
       <p class="mt-2 text-center text-sm text-slate-600 dark:text-slate-300">
         @if (isOIDCConfigured) {
-          Use OIDC authentication or select a role to simulate the login
-          process.
+          Use your organization's single sign-on credentials.
         } @else {
           Select a role to simulate the login process.
         }
@@ -31,43 +30,31 @@
               clip-rule="evenodd"
             ></path>
           </svg>
-          Login with OIDC
+          Login with Single Sign-On
         </button>
-        <div class="relative">
-          <div class="absolute inset-0 flex items-center">
-            <div
-              class="w-full border-t border-slate-300 dark:border-slate-600"
-            ></div>
-          </div>
-          <div class="relative flex justify-center text-sm">
-            <span
-              class="px-2 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400"
-              >Or use demo mode</span
-            >
-          </div>
-        </div>
+      } @else {
+        <button
+          (click)="loginAs('admin')"
+          type="button"
+          class="group relative w-full flex justify-center py-3 px-4 text-sm font-medium rounded-md text-white bg-gradient-diagonal hover:bg-none hover:bg-primary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-dark transition-all"
+        >
+          Login as Admin
+        </button>
+        <button
+          (click)="loginAs('user')"
+          type="button"
+          class="group relative w-full flex justify-center py-3 px-4 text-sm font-medium rounded-md text-white bg-gradient-diagonal hover:bg-none hover:bg-primary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-dark transition-all"
+        >
+          Login as Standard User
+        </button>
+        <button
+          (click)="loginAs('guest')"
+          type="button"
+          class="group relative w-full flex justify-center py-3 px-4 text-sm font-medium rounded-md text-primary bg-slate-100 hover:bg-slate-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-dark transition-colors"
+        >
+          Login as Guest
+        </button>
       }
-      <button
-        (click)="loginAs('admin')"
-        type="button"
-        class="group relative w-full flex justify-center py-3 px-4 text-sm font-medium rounded-md text-white bg-gradient-diagonal hover:bg-none hover:bg-primary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-dark transition-all"
-      >
-        Login as Admin
-      </button>
-      <button
-        (click)="loginAs('user')"
-        type="button"
-        class="group relative w-full flex justify-center py-3 px-4 text-sm font-medium rounded-md text-white bg-gradient-diagonal hover:bg-none hover:bg-primary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-dark transition-all"
-      >
-        Login as Standard User
-      </button>
-      <button
-        (click)="loginAs('guest')"
-        type="button"
-        class="group relative w-full flex justify-center py-3 px-4 text-sm font-medium rounded-md text-primary bg-slate-100 hover:bg-slate-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-dark transition-colors"
-      >
-        Login as Guest
-      </button>
     </div>
   </div>
 </div>

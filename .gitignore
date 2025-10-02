@@ -24,5 +24,8 @@ dist-ssr
 *.sln
 *.sw?
 
-# OIDC Configuration with secrets
+# Configuration files with secrets or custom settings
 config/oidc.json
+config/applications.json
+
+.continue

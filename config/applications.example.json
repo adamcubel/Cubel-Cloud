@@ -1,0 +1,53 @@
+{
+  "applications": [
+    {
+      "id": "ai",
+      "name": "OpenAI Chat",
+      "description": "Personal open-source generative Large Language Models (LLMs)",
+      "icon": "assets/ai.svg",
+      "url": "https://ai.cubel.org/oauth/oidc/login"
+    },
+    {
+      "id": "nextcloud",
+      "name": "File Sharing",
+      "description": "An open-source file storage, collaboration, and sharing platform",
+      "icon": "assets/files.svg",
+      "url": "https://cloud.cubel.org/apps/sociallogin/custom_oidc/Keycloak"
+    },
+    {
+      "id": "rocketchat",
+      "name": "Chat",
+      "description": "An open-source role-based access controlled chat application",
+      "icon": "assets/chat.svg",
+      "url": "https://chat.cubel.org"
+    },
+    {
+      "id": "vault",
+      "name": "HashiCorp Vault",
+      "description": "Secure secrets management and data protection",
+      "icon": "assets/vault.svg",
+      "url": "https://vault.cubel.org:32069/ui/"
+    },
+    {
+      "id": "grafana",
+      "name": "Grafana",
+      "description": "An open-source platform for visualizing and alerting on metrics, logs, and traces",
+      "icon": "assets/grafana.svg",
+      "url": "https://grafana.cubel.org"
+    },
+    {
+      "id": "kiali",
+      "name": "Kiali",
+      "description": "Kubernetes service mesh vizualizaton and debugging",
+      "icon": "assets/kiali.svg",
+      "url": "https://kiali.cubel.org"
+    },
+    {
+      "id": "user-management",
+      "name": "User Management",
+      "description": "Administer user accounts, roles, and permissions.",
+      "icon": "M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z",
+      "url": "#/users"
+    }
+  ]
+}

@@ -11,6 +11,8 @@ services:
     volumes:
       # Mount OIDC configuration (create this file based on the example)
       - ./config/oidc.json:/app/config/oidc.json:ro
+      # Mount application registry configuration (create this file based on the example)
+      - ./config/applications.json:/app/config/applications.json:ro
     environment:
       - NODE_ENV=production
       - FRONTEND_URL=http://localhost
@@ -28,6 +30,7 @@ services:
       - .:/app
       - /app/node_modules
       - ./config/oidc.json:/app/config/oidc.json:ro
+      - ./config/applications.json:/app/config/applications.json:ro
     environment:
       - NODE_ENV=development
       - FRONTEND_URL=http://localhost:3000
