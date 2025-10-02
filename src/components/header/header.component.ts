@@ -24,6 +24,7 @@ export class HeaderComponent {
   private sanitizer = inject(DomSanitizer);
 
   isProfileDropdownOpen = signal(false);
+  isMobileMenuOpen = signal(false);
 
   get isHomePage(): boolean {
     return this.router.url === "/home" || this.router.url === "/";
@@ -35,6 +36,14 @@ export class HeaderComponent {
 
   closeProfileDropdown() {
     this.isProfileDropdownOpen.set(false);
+  }
+
+  toggleMobileMenu() {
+    this.isMobileMenuOpen.update((value) => !value);
+  }
+
+  closeMobileMenu() {
+    this.isMobileMenuOpen.set(false);
   }
 
   /**
