@@ -96,11 +96,7 @@
                   aria-label="User menu"
                 >
                   <img
-                    [src]="
-                      authService.getGravatarUrl(
-                        authService.currentUser()?.email || ''
-                      )
-                    "
+                    [src]="authService.userGravatarUrl()"
                     [alt]="authService.currentUser()?.name + ' avatar'"
                     class="w-8 h-8 rounded-full border-2 border-slate-300 dark:border-slate-600"
                   />
@@ -109,92 +105,46 @@
                 <!-- Dropdown Menu -->
                 @if (isProfileDropdownOpen()) {
                   <div
-                    class="absolute right-0 mt-2 w-80 bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 py-2 z-50"
+                    class="absolute right-0 mt-2 bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden z-50"
+                    style="width: 336"
                   >
-                    <!-- Profile Header -->
-                    <div
-                      class="px-4 py-3 border-b border-slate-200 dark:border-slate-700"
-                    >
-                      <div class="flex items-center gap-3">
-                        <img
-                          [src]="
-                            authService.getGravatarUrl(
-                              authService.currentUser()?.email || ''
-                            )
-                          "
-                          [alt]="authService.currentUser()?.name + ' avatar'"
-                          class="w-12 h-12 rounded-full border-2 border-slate-300 dark:border-slate-600"
-                        />
-                        <div class="flex-1 min-w-0">
-                          <p
-                            class="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate"
-                          >
-                            {{ authService.currentUser()?.name }}
-                          </p>
-                          <p
-                            class="text-xs text-slate-500 dark:text-slate-400 truncate"
-                          >
-                            {{ authService.currentUser()?.email }}
-                          </p>
-                        </div>
+                    <!-- Embedded Gravatar Profile Card -->
+                    @if (authService.userGravatarHash()) {
+                      <div class="gravatar-profile-container">
+                        <iframe
+                          [src]="getGravatarProfileUrl()"
+                          width="332"
+                          height="360"
+                          style="border: 0; margin: 0; padding: 0"
+                          title="Gravatar Profile Card"
+                        ></iframe>
                       </div>
-                    </div>
-
-                    <!-- Profile Details -->
-                    <div class="px-4 py-3 space-y-2">
-                      <div>
-                        <p class="text-xs text-slate-500 dark:text-slate-400">
-                          Role
-                        </p>
-                        <p
-                          class="text-sm font-medium text-slate-900 dark:text-slate-100 capitalize"
-                        >
-                          {{ authService.currentUser()?.role }}
-                        </p>
-                      </div>
-                      @if (authService.currentUser()?.id) {
-                        <div>
-                          <p class="text-xs text-slate-500 dark:text-slate-400">
-                            User ID
-                          </p>
-                          <p
-                            class="text-sm font-mono text-slate-900 dark:text-slate-100 truncate"
-                          >
-                            {{ authService.currentUser()?.id }}
-                          </p>
-                        </div>
-                      }
-                      @if (
-                        authService.currentUser()?.apps &&
-                        authService.currentUser()!.apps!.length > 0
-                      ) {
-                        <div>
-                          <p class="text-xs text-slate-500 dark:text-slate-400">
-                            Assigned Applications
-                          </p>
-                          <div class="flex flex-wrap gap-1 mt-1">
-                            @for (
-                              app of authService.currentUser()?.apps;
-                              track app
-                            ) {
-                              <span
-                                class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-primary/10 text-primary"
-                              >
-                                {{ app }}
-                              </span>
-                            }
+                    } @else {
+                      <!-- Fallback for when hash is not yet computed -->
+                      <div class="px-4 py-8 text-center" style="height: 228px">
+                        <div class="animate-pulse space-y-4">
+                          <div
+                            class="w-24 h-24 bg-slate-200 dark:bg-slate-700 rounded-full mx-auto"
+                          ></div>
+                          <div class="space-y-2">
+                            <div
+                              class="h-4 bg-slate-200 dark:bg-slate-700 rounded w-3/4 mx-auto"
+                            ></div>
+                            <div
+                              class="h-3 bg-slate-200 dark:bg-slate-700 rounded w-1/2 mx-auto"
+                            ></div>
                           </div>
                         </div>
-                      }
-                    </div>
+                      </div>
+                    }
 
                     <!-- Actions -->
                     <div
-                      class="border-t border-slate-200 dark:border-slate-700 mt-2"
+                      class="border-t border-slate-200 dark:border-slate-700"
                     >
                       <button
                         (click)="authService.logout(); closeProfileDropdown()"
-                        class="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors flex items-center gap-2"
+                        class="w-full text-left px-4 py-3 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors flex items-center gap-2"
                       >
                         <svg
                           class="w-4 h-4"

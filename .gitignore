@@ -27,5 +27,6 @@ dist-ssr
 # Configuration files with secrets or custom settings
 config/oidc.json
 config/applications.json
+config/gravatar-api-key
 
 .continue

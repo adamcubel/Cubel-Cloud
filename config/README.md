@@ -116,6 +116,58 @@ Applications can be filtered per-user using the `apps` claim in the OIDC token:
 
 The application IDs in the configuration must match the values in the OIDC token's `apps` claim.
 
+## Gravatar API Configuration
+
+### File: `gravatar-api-key`
+
+Configure Gravatar API for enhanced user avatar support.
+
+#### Setup
+
+1. Get your Gravatar API key:
+   - Visit [Gravatar API Documentation](https://docs.gravatar.com/rest/getting-started/)
+   - Create an API key in your Gravatar account
+   - Follow the [LLM guide](https://docs.gravatar.com/guides/llms-txt/) for detailed instructions
+
+2. Create the API key file:
+
+   ```bash
+   cp gravatar-api-key.example gravatar-api-key
+   ```
+
+3. Add your API key:
+   ```bash
+   echo "your-api-key-here" > gravatar-api-key
+   ```
+
+#### Features
+
+When configured, the Gravatar API provides:
+
+- **Real profile photos** from Gravatar.com
+- **User profile information** (display name, location, etc.)
+- **Verified accounts** (social media links)
+- **Professional avatars** instead of generated identicons
+
+#### Fallback Behavior
+
+If the API key is not configured:
+
+- The application will still work normally
+- User avatars will use Gravatar's default identicon generation
+- No profile information will be fetched
+
+#### Docker Configuration
+
+The API key file is mounted into the container:
+
+```yaml
+volumes:
+  - ./config/gravatar-api-key:/app/config/gravatar-api-key:ro
+```
+
+The API key is loaded at application startup and cached for the session.
+
 ## OIDC Configuration
 
 See [../OIDC-SETUP.md](../OIDC-SETUP.md) for OIDC configuration details.

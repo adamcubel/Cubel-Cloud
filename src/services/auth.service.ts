@@ -1,10 +1,11 @@
-import { Injectable, signal, computed, inject } from "@angular/core";
+import { Injectable, signal, computed, inject, effect } from "@angular/core";
 import { Router } from "@angular/router";
 import { OAuthService, AuthConfig } from "angular-oauth2-oidc";
 import { filter, firstValueFrom } from "rxjs";
 import { User, UserRole } from "../models/user.model";
 import { OidcConfigService } from "./oidc-config.service";
 import { ApplicationRegistryConfigService } from "./application-registry-config.service";
+import { GravatarService } from "./gravatar.service";
 
 @Injectable({
   providedIn: "root",
@@ -16,14 +17,42 @@ export class AuthService {
   private applicationRegistryConfigService = inject(
     ApplicationRegistryConfigService,
   );
+  private gravatarService = inject(GravatarService);
 
   currentUser = signal<User | null>(null);
   isLoggedIn = computed(() => !!this.currentUser());
   isConfiguring = signal<boolean>(false);
   private initialized = false;
 
+  // Signal for user's gravatar URL - updated asynchronously with proper SHA-256 hash
+  userGravatarUrl = signal<string>("");
+  // Signal for user's gravatar hash - for embedded profile widget
+  userGravatarHash = signal<string>("");
+
   constructor() {
     this.setupOAuthEvents();
+
+    // Watch for user changes and pre-compute SHA-256 hash for gravatar
+    // Use effect to react to signal changes
+    effect(() => {
+      const user = this.currentUser();
+      if (user?.email) {
+        // Pre-compute SHA-256 hash and update avatar URL
+        this.gravatarService.getAvatarUrlAsync(user.email).then((url) => {
+          this.userGravatarUrl.set(url);
+          console.log("[AuthService] Gravatar URL updated with SHA-256:", url);
+        });
+
+        // Get and store the hash for embedded profile
+        this.gravatarService.getEmailHashAsync(user.email).then((hash) => {
+          this.userGravatarHash.set(hash);
+          console.log("[AuthService] Gravatar hash for profile:", hash);
+        });
+      } else {
+        this.userGravatarUrl.set("");
+        this.userGravatarHash.set("");
+      }
+    });
   }
 
   isInitialized(): boolean {
@@ -39,7 +68,7 @@ export class AuthService {
     this.isConfiguring.set(true);
 
     try {
-      // Load both OIDC config and application registry config in parallel
+      // Load OIDC config, application registry config, and Gravatar config in parallel
       const [config, appRegistryConfig] = await Promise.all([
         firstValueFrom(this.oidcConfigService.loadConfig()),
         firstValueFrom(
@@ -47,6 +76,13 @@ export class AuthService {
         ).catch((error) => {
           console.warn(
             "Application registry configuration not available, using default:",
+            error.message,
+          );
+          return null;
+        }),
+        firstValueFrom(this.gravatarService.loadConfig()).catch((error) => {
+          console.warn(
+            "Gravatar API key not configured, using fallback avatar:",
             error.message,
           );
           return null;
@@ -383,21 +419,6 @@ export class AuthService {
     }
 
     return "guest";
-  }
-
-  getGravatarUrl(email: string, size: number = 40): string {
-    const hash = this.md5(email.toLowerCase().trim());
-    return `https://www.gravatar.com/avatar/${hash}?s=${size}&d=identicon&r=pg`;
-  }
-
-  private md5(str: string): string {
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-      const char = str.charCodeAt(i);
-      hash = (hash << 5) - hash + char;
-      hash = hash & hash;
-    }
-    return Math.abs(hash).toString(16).padStart(8, "0");
   }
 
   private sanitizeClaims(claims: any): any {

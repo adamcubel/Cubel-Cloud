@@ -168,6 +168,37 @@ app.get("/api/applications/config", (req, res) => {
   res.json(config);
 });
 
+app.get("/api/gravatar/config", (req, res) => {
+  const apiKeyPath = path.join(__dirname, "../config/gravatar-api-key");
+
+  try {
+    if (fs.existsSync(apiKeyPath)) {
+      const apiKey = fs.readFileSync(apiKeyPath, "utf8").trim();
+
+      if (!apiKey) {
+        return res.status(404).json({
+          error: "Gravatar API key is empty",
+          message: "Please add your API key to config/gravatar-api-key",
+        });
+      }
+
+      res.json({ apiKey });
+    } else {
+      res.status(404).json({
+        error: "Gravatar API key not found",
+        message:
+          "Please create config/gravatar-api-key and add your Gravatar API key",
+      });
+    }
+  } catch (error) {
+    console.error("Error loading Gravatar API key:", error.message);
+    res.status(500).json({
+      error: "Failed to load Gravatar API key",
+      message: error.message,
+    });
+  }
+});
+
 app.get("/health", (req, res) => {
   res.json({ status: "healthy", timestamp: new Date().toISOString() });
 });

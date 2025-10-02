@@ -7,6 +7,7 @@ import {
 } from "@angular/core";
 import { RouterLink, RouterLinkActive, Router } from "@angular/router";
 import { NgOptimizedImage, CommonModule } from "@angular/common";
+import { DomSanitizer, SafeResourceUrl } from "@angular/platform-browser";
 import { AuthService } from "../../services/auth.service";
 import { ThemeService } from "../../services/theme.service";
 
@@ -20,6 +21,7 @@ export class HeaderComponent {
   authService = inject(AuthService);
   router = inject(Router);
   themeService = inject(ThemeService);
+  private sanitizer = inject(DomSanitizer);
 
   isProfileDropdownOpen = signal(false);
 
@@ -33,6 +35,23 @@ export class HeaderComponent {
 
   closeProfileDropdown() {
     this.isProfileDropdownOpen.set(false);
+  }
+
+  /**
+   * Get the Gravatar profile card URL
+   * Uses the .card format for direct iframe embedding
+   * https://docs.gravatar.com/sdk/profiles/
+   */
+  getGravatarProfileUrl(): SafeResourceUrl {
+    const hash = this.authService.userGravatarHash();
+    if (!hash) {
+      return this.sanitizer.bypassSecurityTrustResourceUrl("about:blank");
+    }
+
+    // Using the Gravatar profile card URL (hash.card)
+    const url = `https://gravatar.com/${hash}.card`;
+    console.log("[HeaderComponent] Gravatar profile card URL:", url);
+    return this.sanitizer.bypassSecurityTrustResourceUrl(url);
   }
 
   @HostListener("document:click", ["$event"])
