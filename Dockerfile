@@ -25,9 +25,10 @@ RUN apk add --no-cache nodejs npm
 # Copy built application from builder stage
 COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Copy server files
+# Copy server files and database schema
 COPY --from=builder /app/server /app/server
 COPY --from=builder /app/node_modules /app/node_modules
+COPY --from=builder /app/database /app/database
 
 # Copy nginx configuration
 COPY nginx.conf /etc/nginx/nginx.conf

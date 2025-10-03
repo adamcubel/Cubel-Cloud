@@ -1,6 +1,47 @@
 -- Cubel Cloud Database Schema
 -- PostgreSQL 12+
 
+-- Registration Requests Table
+-- Stores new user registration requests
+CREATE TABLE IF NOT EXISTS registration_requests (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    email VARCHAR(255) NOT NULL,
+    first_name VARCHAR(100) NOT NULL,
+    last_name VARCHAR(100) NOT NULL,
+    reason TEXT NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
+    submitted_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    processed_at TIMESTAMP WITH TIME ZONE,
+    processed_by VARCHAR(255),
+    notes TEXT,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+);
+
+-- Indexes for performance
+CREATE INDEX IF NOT EXISTS idx_registration_requests_email ON registration_requests(email);
+CREATE INDEX IF NOT EXISTS idx_registration_requests_status ON registration_requests(status);
+CREATE INDEX IF NOT EXISTS idx_registration_requests_submitted_at ON registration_requests(submitted_at DESC);
+
+-- Trigger to automatically update updated_at
+DROP TRIGGER IF EXISTS update_registration_requests_updated_at ON registration_requests;
+CREATE TRIGGER update_registration_requests_updated_at
+    BEFORE UPDATE ON registration_requests
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+-- Comments for documentation
+COMMENT ON TABLE registration_requests IS 'New user registration requests';
+COMMENT ON COLUMN registration_requests.email IS 'Email address of the person requesting access';
+COMMENT ON COLUMN registration_requests.first_name IS 'First name of the requester';
+COMMENT ON COLUMN registration_requests.last_name IS 'Last name of the requester';
+COMMENT ON COLUMN registration_requests.reason IS 'Reason for requesting access to the application';
+COMMENT ON COLUMN registration_requests.status IS 'Current status: pending, approved, or rejected';
+COMMENT ON COLUMN registration_requests.submitted_at IS 'When the registration request was submitted';
+COMMENT ON COLUMN registration_requests.processed_at IS 'When the request was approved or rejected';
+COMMENT ON COLUMN registration_requests.processed_by IS 'Email of the admin who processed the request';
+COMMENT ON COLUMN registration_requests.notes IS 'Optional notes from admin';
+
 -- Access Requests Table
 -- Stores user requests for application access
 CREATE TABLE IF NOT EXISTS access_requests (

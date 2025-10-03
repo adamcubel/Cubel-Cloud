@@ -9,6 +9,8 @@ services:
       - "80:80"
       - "3001:3001"
     volumes:
+      # Mount Database config
+      - ./config/database.json:/app/config/database.json:ro
       # Mount OIDC configuration (create this file based on the example)
       - ./config/oidc.json:/app/config/oidc.json:ro
       # Mount application registry configuration (create this file based on the example)

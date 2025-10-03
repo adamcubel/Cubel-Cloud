@@ -212,23 +212,39 @@ async function initializeSchema() {
 
     console.log("[Database] Checking if schema initialization is needed...");
 
-    // Check if access_requests table exists
+    // Check if both registration_requests and access_requests tables exist
     const tableCheckResult = await pool.query(
-      `SELECT EXISTS (
-        SELECT FROM information_schema.tables
-        WHERE table_schema = 'public'
-        AND table_name = 'access_requests'
-      )`,
+      `SELECT
+        (SELECT EXISTS (
+          SELECT FROM information_schema.tables
+          WHERE table_schema = 'public'
+          AND table_name = 'registration_requests'
+        )) as registration_requests_exists,
+        (SELECT EXISTS (
+          SELECT FROM information_schema.tables
+          WHERE table_schema = 'public'
+          AND table_name = 'access_requests'
+        )) as access_requests_exists`,
     );
 
-    const tableExists = tableCheckResult.rows[0].exists;
+    const registrationTableExists =
+      tableCheckResult.rows[0].registration_requests_exists;
+    const accessTableExists = tableCheckResult.rows[0].access_requests_exists;
 
-    if (tableExists) {
-      console.log("[Database] Schema already initialized - skipping");
+    if (registrationTableExists && accessTableExists) {
+      console.log("[Database] Schema already initialized - all tables exist");
       return true;
     }
 
-    console.log("[Database] Tables not found, initializing database schema...");
+    // Log which tables are missing
+    if (!registrationTableExists) {
+      console.log("[Database] Missing table: registration_requests");
+    }
+    if (!accessTableExists) {
+      console.log("[Database] Missing table: access_requests");
+    }
+
+    console.log("[Database] Initializing/updating database schema...");
 
     // Read and execute schema file
     const schemaPath = path.join(__dirname, "../database/schema.sql");
@@ -241,12 +257,39 @@ async function initializeSchema() {
     const schemaSQL = fs.readFileSync(schemaPath, "utf8");
 
     // Execute the schema SQL
-    await pool.query(schemaSQL);
+    // Split by semicolons and execute each statement separately
+    // (pg doesn't support multiple statements in a single query)
+    const statements = schemaSQL
+      .split(";")
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0 && !s.startsWith("--"));
 
-    console.log("[Database] ✓ Schema initialized successfully");
-    console.log("[Database] ✓ Created table: access_requests");
-    console.log("[Database] ✓ Created indexes");
-    console.log("[Database] ✓ Created triggers");
+    console.log(`[Database] Executing ${statements.length} SQL statements...`);
+
+    for (let i = 0; i < statements.length; i++) {
+      try {
+        await pool.query(statements[i]);
+      } catch (error) {
+        console.error(
+          `[Database] Error executing statement ${i + 1}:`,
+          error.message,
+        );
+        console.error(
+          `[Database] Statement: ${statements[i].substring(0, 100)}...`,
+        );
+        throw error;
+      }
+    }
+
+    console.log("[Database] ✓ Schema initialized/updated successfully");
+    if (!registrationTableExists) {
+      console.log("[Database] ✓ Created table: registration_requests");
+    }
+    if (!accessTableExists) {
+      console.log("[Database] ✓ Created table: access_requests");
+    }
+    console.log("[Database] ✓ Created/updated indexes");
+    console.log("[Database] ✓ Created/updated triggers");
 
     return true;
   } catch (error) {

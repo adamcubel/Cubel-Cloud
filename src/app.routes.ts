@@ -1,6 +1,7 @@
 import { Routes } from "@angular/router";
 import { authGuard } from "./guards/auth.guard";
 import { adminGuard } from "./guards/admin.guard";
+import { guestGuard } from "./guards/guest.guard";
 
 export const APP_ROUTES: Routes = [
   {
@@ -12,6 +13,7 @@ export const APP_ROUTES: Routes = [
     path: "home",
     loadComponent: () =>
       import("./components/home/home.component").then((c) => c.HomeComponent),
+    canActivate: [guestGuard],
   },
   {
     path: "login",
@@ -19,6 +21,15 @@ export const APP_ROUTES: Routes = [
       import("./components/login/login.component").then(
         (c) => c.LoginComponent,
       ),
+    canActivate: [guestGuard],
+  },
+  {
+    path: "register",
+    loadComponent: () =>
+      import("./components/register/register.component").then(
+        (c) => c.RegisterComponent,
+      ),
+    canActivate: [guestGuard],
   },
   {
     path: "about",
@@ -26,6 +37,7 @@ export const APP_ROUTES: Routes = [
       import("./components/about/about.component").then(
         (c) => c.AboutComponent,
       ),
+    canActivate: [guestGuard],
   },
   {
     path: "auth/callback",

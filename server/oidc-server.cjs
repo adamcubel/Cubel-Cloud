@@ -3,6 +3,7 @@ const fs = require("fs");
 const path = require("path");
 const cors = require("cors");
 const db = require("./database.cjs");
+const keycloak = require("./keycloak.cjs");
 
 const app = express();
 const port = process.env.OIDC_SERVER_PORT || 3001;
@@ -227,6 +228,239 @@ app.get("/api/gravatar/config", (req, res) => {
 
 app.get("/health", (req, res) => {
   res.json({ status: "healthy", timestamp: new Date().toISOString() });
+});
+
+// Registration Request API endpoints
+
+// Get all registration requests (admin only)
+app.get("/api/registration-requests", async (req, res) => {
+  if (!db.isAvailable()) {
+    return res.status(503).json({
+      error: "Database not configured",
+      message: "Please configure database connection",
+    });
+  }
+
+  try {
+    const result = await db.query(
+      `SELECT id, email, first_name, last_name, reason, status,
+              submitted_at, processed_at, processed_by, notes
+       FROM registration_requests
+       ORDER BY
+         CASE WHEN status = 'pending' THEN 0 ELSE 1 END,
+         submitted_at DESC`,
+    );
+
+    res.json({ requests: result.rows });
+  } catch (error) {
+    console.error("[API] Failed to fetch registration requests:", error);
+    res.status(500).json({
+      error: "Failed to fetch registration requests",
+      message: error.message,
+    });
+  }
+});
+
+// Create a new registration request
+app.post("/api/registration-requests", async (req, res) => {
+  if (!db.isAvailable()) {
+    return res.status(503).json({
+      error: "Database not configured",
+      message: "Please configure database connection",
+    });
+  }
+
+  const { email, firstName, lastName, reason } = req.body;
+
+  if (!email || !firstName || !lastName || !reason) {
+    return res.status(400).json({
+      error: "Missing required fields",
+      message: "email, firstName, lastName, and reason are required",
+    });
+  }
+
+  try {
+    // Check if email already has a pending request
+    const existingResult = await db.query(
+      `SELECT id, status FROM registration_requests
+       WHERE email = $1 AND status = 'pending'`,
+      [email],
+    );
+
+    if (existingResult.rows.length > 0) {
+      return res.status(409).json({
+        error: "Request already exists",
+        message: "A pending registration request already exists for this email",
+      });
+    }
+
+    const result = await db.query(
+      `INSERT INTO registration_requests (email, first_name, last_name, reason)
+       VALUES ($1, $2, $3, $4)
+       RETURNING id, email, first_name, last_name, reason, status, submitted_at`,
+      [email, firstName, lastName, reason],
+    );
+
+    res.status(201).json({ request: result.rows[0] });
+  } catch (error) {
+    console.error("[API] Failed to create registration request:", error);
+    res.status(500).json({
+      error: "Failed to create registration request",
+      message: error.message,
+    });
+  }
+});
+
+// Approve a registration request (admin only)
+app.post("/api/registration-requests/:id/approve", async (req, res) => {
+  if (!db.isAvailable()) {
+    return res.status(503).json({
+      error: "Database not configured",
+      message: "Please configure database connection",
+    });
+  }
+
+  const { id } = req.params;
+  const { processedBy } = req.body;
+
+  if (!processedBy) {
+    return res.status(400).json({
+      error: "Missing required field",
+      message: "processedBy is required",
+    });
+  }
+
+  try {
+    // First, get the registration request details
+    const requestResult = await db.query(
+      `SELECT id, email, first_name, last_name, status
+       FROM registration_requests
+       WHERE id = $1 AND status = 'pending'`,
+      [id],
+    );
+
+    if (requestResult.rows.length === 0) {
+      return res.status(404).json({
+        error: "Request not found",
+        message: "Registration request not found or already processed",
+      });
+    }
+
+    const request = requestResult.rows[0];
+
+    // Provision user in Keycloak
+    let provisioningResult = null;
+    let provisioningError = null;
+
+    if (keycloak.isAvailable()) {
+      try {
+        console.log(`[API] Provisioning user in Keycloak: ${request.email}`);
+        provisioningResult = await keycloak.provisionUser({
+          email: request.email,
+          firstName: request.first_name,
+          lastName: request.last_name,
+        });
+        console.log(
+          `[API] ✓ User provisioned: ${provisioningResult.userId} (${provisioningResult.status})`,
+        );
+      } catch (error) {
+        console.error(
+          "[API] Failed to provision user in Keycloak:",
+          error.message,
+        );
+        provisioningError = error.message;
+
+        // If provisioning fails, return error without updating database
+        return res.status(500).json({
+          error: "Failed to provision user",
+          message: `User provisioning in Keycloak failed: ${error.message}`,
+          details:
+            "The registration request was not approved. Please try again or contact support.",
+        });
+      }
+    } else {
+      console.warn(
+        "[API] Keycloak not configured - skipping user provisioning",
+      );
+    }
+
+    // Update the registration request status
+    const result = await db.query(
+      `UPDATE registration_requests
+       SET status = 'approved', processed_at = NOW(), processed_by = $1
+       WHERE id = $2 AND status = 'pending'
+       RETURNING id, email, first_name, last_name, reason, status,
+                 submitted_at, processed_at, processed_by`,
+      [processedBy, id],
+    );
+
+    const response = {
+      request: result.rows[0],
+    };
+
+    // Include provisioning information in response
+    if (provisioningResult) {
+      response.provisioning = {
+        status: provisioningResult.status,
+        userId: provisioningResult.userId,
+        username: provisioningResult.username,
+      };
+    }
+
+    res.json(response);
+  } catch (error) {
+    console.error("[API] Failed to approve registration request:", error);
+    res.status(500).json({
+      error: "Failed to approve registration request",
+      message: error.message,
+    });
+  }
+});
+
+// Reject a registration request (admin only)
+app.post("/api/registration-requests/:id/reject", async (req, res) => {
+  if (!db.isAvailable()) {
+    return res.status(503).json({
+      error: "Database not configured",
+      message: "Please configure database connection",
+    });
+  }
+
+  const { id } = req.params;
+  const { processedBy, notes } = req.body;
+
+  if (!processedBy) {
+    return res.status(400).json({
+      error: "Missing required field",
+      message: "processedBy is required",
+    });
+  }
+
+  try {
+    const result = await db.query(
+      `UPDATE registration_requests
+       SET status = 'rejected', processed_at = NOW(), processed_by = $1, notes = $2
+       WHERE id = $3 AND status = 'pending'
+       RETURNING id, email, first_name, last_name, reason, status,
+                 submitted_at, processed_at, processed_by, notes`,
+      [processedBy, notes || null, id],
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        error: "Request not found",
+        message: "Registration request not found or already processed",
+      });
+    }
+
+    res.json({ request: result.rows[0] });
+  } catch (error) {
+    console.error("[API] Failed to reject registration request:", error);
+    res.status(500).json({
+      error: "Failed to reject registration request",
+      message: error.message,
+    });
+  }
 });
 
 // Access Request API endpoints

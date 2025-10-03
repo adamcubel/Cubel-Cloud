@@ -60,19 +60,21 @@
       <div class="flex items-center">
         <div class="hidden md:block">
           <div class="ml-10 flex items-baseline space-x-4">
-            <a
-              routerLink="/home"
-              routerLinkActive="text-primary border-primary"
-              [routerLinkActiveOptions]="{ exact: true }"
-              class="text-gray-600 dark:text-slate-300 hover:text-primary px-3 py-2 rounded-md text-sm font-medium border-b-2 border-transparent"
-              >Home</a
-            >
-            <a
-              routerLink="/about"
-              routerLinkActive="text-primary border-primary"
-              class="text-gray-600 dark:text-slate-300 hover:text-primary px-3 py-2 rounded-md text-sm font-medium border-b-2 border-transparent"
-              >About</a
-            >
+            @if (!authService.isLoggedIn()) {
+              <a
+                routerLink="/home"
+                routerLinkActive="text-primary border-primary"
+                [routerLinkActiveOptions]="{ exact: true }"
+                class="text-gray-600 dark:text-slate-300 hover:text-primary px-3 py-2 rounded-md text-sm font-medium border-b-2 border-transparent"
+                >Home</a
+              >
+              <a
+                routerLink="/about"
+                routerLinkActive="text-primary border-primary"
+                class="text-gray-600 dark:text-slate-300 hover:text-primary px-3 py-2 rounded-md text-sm font-medium border-b-2 border-transparent"
+                >About</a
+              >
+            }
             @if (authService.isLoggedIn()) {
               <a
                 routerLink="/applications"
@@ -255,13 +257,6 @@
                   </div>
                 }
               </div>
-            } @else {
-              <button
-                (click)="authService.login()"
-                class="bg-gradient-diagonal hover:bg-none hover:bg-primary text-white transition-all px-4 py-2 rounded-md text-sm font-medium"
-              >
-                Login
-              </button>
             }
           </div>
         </div>
@@ -272,21 +267,23 @@
     @if (isMobileMenuOpen()) {
       <div class="md:hidden border-t border-slate-200 dark:border-slate-700">
         <div class="px-2 pt-2 pb-3 space-y-1">
-          <a
-            routerLink="/home"
-            routerLinkActive="bg-primary/20 text-primary dark:bg-primary/30"
-            [routerLinkActiveOptions]="{ exact: true }"
-            (click)="closeMobileMenu()"
-            class="block px-3 py-2 rounded-md text-base font-medium text-gray-600 dark:text-slate-300 hover:text-primary hover:bg-primary/10 dark:hover:bg-primary/20 transition-colors"
-            >Home</a
-          >
-          <a
-            routerLink="/about"
-            routerLinkActive="bg-primary/20 text-primary dark:bg-primary/30"
-            (click)="closeMobileMenu()"
-            class="block px-3 py-2 rounded-md text-base font-medium text-gray-600 dark:text-slate-300 hover:text-primary hover:bg-primary/10 dark:hover:bg-primary/20 transition-colors"
-            >About</a
-          >
+          @if (!authService.isLoggedIn()) {
+            <a
+              routerLink="/home"
+              routerLinkActive="bg-primary/20 text-primary dark:bg-primary/30"
+              [routerLinkActiveOptions]="{ exact: true }"
+              (click)="closeMobileMenu()"
+              class="block px-3 py-2 rounded-md text-base font-medium text-gray-600 dark:text-slate-300 hover:text-primary hover:bg-primary/10 dark:hover:bg-primary/20 transition-colors"
+              >Home</a
+            >
+            <a
+              routerLink="/about"
+              routerLinkActive="bg-primary/20 text-primary dark:bg-primary/30"
+              (click)="closeMobileMenu()"
+              class="block px-3 py-2 rounded-md text-base font-medium text-gray-600 dark:text-slate-300 hover:text-primary hover:bg-primary/10 dark:hover:bg-primary/20 transition-colors"
+              >About</a
+            >
+          }
           @if (authService.isLoggedIn()) {
             <a
               routerLink="/applications"

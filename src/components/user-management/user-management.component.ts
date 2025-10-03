@@ -6,6 +6,7 @@ import {
   OnInit,
 } from "@angular/core";
 import { CommonModule } from "@angular/common";
+import { HttpClient } from "@angular/common/http";
 import { AuthService } from "../../services/auth.service";
 import { ApplicationService } from "../../services/application.service";
 
@@ -22,6 +23,19 @@ interface AccessRequest {
   processedBy?: string;
 }
 
+interface RegistrationRequest {
+  id: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  reason: string;
+  status: "pending" | "approved" | "rejected";
+  submitted_at: Date;
+  processed_at?: Date;
+  processed_by?: string;
+  notes?: string;
+}
+
 @Component({
   selector: "app-user-management",
   templateUrl: "./user-management.component.html",
@@ -31,12 +45,16 @@ interface AccessRequest {
 export class UserManagementComponent implements OnInit {
   authService = inject(AuthService);
   applicationService = inject(ApplicationService);
+  http = inject(HttpClient);
 
   accessRequests = signal<AccessRequest[]>([]);
+  registrationRequests = signal<RegistrationRequest[]>([]);
   isLoading = signal(false);
   errorMessage = signal<string | null>(null);
+  activeTab = signal<"registrations" | "access">("registrations");
 
   ngOnInit() {
+    this.loadRegistrationRequests();
     this.loadAccessRequests();
   }
 
@@ -152,5 +170,85 @@ export class UserManagementComponent implements OnInit {
 
   formatDate(date: Date): string {
     return new Date(date).toLocaleString();
+  }
+
+  loadRegistrationRequests() {
+    this.isLoading.set(true);
+    this.errorMessage.set(null);
+
+    this.http
+      .get<{ requests: RegistrationRequest[] }>("/api/registration-requests")
+      .subscribe({
+        next: (response) => {
+          this.registrationRequests.set(response.requests);
+          this.isLoading.set(false);
+        },
+        error: (error) => {
+          console.error("Failed to load registration requests:", error);
+          this.errorMessage.set(
+            "Failed to load registration requests. Please try again.",
+          );
+          this.isLoading.set(false);
+        },
+      });
+  }
+
+  async approveRegistration(request: RegistrationRequest) {
+    const userEmail = this.authService.currentUser()?.email;
+    if (!userEmail) {
+      alert("Unable to determine current user");
+      return;
+    }
+
+    this.http
+      .post(`/api/registration-requests/${request.id}/approve`, {
+        processedBy: userEmail,
+      })
+      .subscribe({
+        next: () => {
+          this.loadRegistrationRequests();
+        },
+        error: (error) => {
+          console.error("Failed to approve registration:", error);
+          alert("Failed to approve registration. Please try again.");
+        },
+      });
+  }
+
+  async rejectRegistration(request: RegistrationRequest) {
+    const userEmail = this.authService.currentUser()?.email;
+    if (!userEmail) {
+      alert("Unable to determine current user");
+      return;
+    }
+
+    const notes = prompt("Rejection reason (optional):");
+
+    this.http
+      .post(`/api/registration-requests/${request.id}/reject`, {
+        processedBy: userEmail,
+        notes: notes || undefined,
+      })
+      .subscribe({
+        next: () => {
+          this.loadRegistrationRequests();
+        },
+        error: (error) => {
+          console.error("Failed to reject registration:", error);
+          alert("Failed to reject registration. Please try again.");
+        },
+      });
+  }
+
+  getPendingRegistrations(): RegistrationRequest[] {
+    return this.registrationRequests().filter((r) => r.status === "pending");
+  }
+
+  getProcessedRegistrations(): RegistrationRequest[] {
+    return this.registrationRequests().filter((r) => r.status !== "pending");
+  }
+
+  setActiveTab(tab: "registrations" | "access") {
+    this.activeTab.set(tab);
   }
 }
