@@ -40,5 +40,4 @@ repos:
     rev: v5.0.0
     hooks:
       - id: no-commit-to-branch
-        args: [--branch, main, --branch, master]
-        stages: [pre-commit]
+        args: [--branch, main]
