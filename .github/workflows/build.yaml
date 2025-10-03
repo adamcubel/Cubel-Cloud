@@ -297,6 +297,19 @@ jobs:
           echo "📦 New version: ${VERSION}"
           echo "🏷️  Full tag: ${FULL_TAG}"
 
+      - name: Create and push git tag
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          echo "Creating git tag: ${VERSION}"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git tag -a "${VERSION}" -m "Release ${VERSION}"
+          git push origin "${VERSION}"
+
+          echo "✓ Git tag ${VERSION} created and pushed"
+
       - name: Create GitHub Release
         uses: actions/create-release@v1
         env:
