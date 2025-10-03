@@ -1,7 +1,7 @@
 import { Injectable } from "@angular/core";
 import { HttpClient } from "@angular/common/http";
-import { Observable, throwError } from "rxjs";
-import { catchError } from "rxjs/operators";
+import { Observable, throwError, timer } from "rxjs";
+import { catchError, retry } from "rxjs/operators";
 import { ApplicationRegistryConfig } from "../models/application-registry-config.model";
 
 @Injectable({
@@ -16,6 +16,16 @@ export class ApplicationRegistryConfigService {
     return this.http
       .get<ApplicationRegistryConfig>("/api/applications/config")
       .pipe(
+        retry({
+          count: 5,
+          delay: (error, retryCount) => {
+            const delay = Math.min(1000 * Math.pow(2, retryCount - 1), 10000);
+            console.log(
+              `[ApplicationRegistryConfigService] Retrying application config load (attempt ${retryCount}/5) after ${delay}ms...`,
+            );
+            return timer(delay);
+          },
+        }),
         catchError((error) => {
           console.error(
             "Failed to load application registry configuration:",

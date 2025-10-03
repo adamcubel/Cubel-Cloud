@@ -4,4 +4,6 @@ export interface Application {
   description: string;
   icon: string; // SVG path data or path to SVG file (e.g., "assets/kubernetes.svg")
   url: string;
+  accessible?: boolean; // Whether the user has access to this application
+  private?: boolean; // If true, only visible to admins
 }

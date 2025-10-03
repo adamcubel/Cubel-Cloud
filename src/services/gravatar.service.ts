@@ -1,7 +1,7 @@
 import { Injectable, signal } from "@angular/core";
 import { HttpClient, HttpHeaders } from "@angular/common/http";
-import { Observable, of, throwError } from "rxjs";
-import { catchError, tap } from "rxjs/operators";
+import { Observable, of, throwError, timer } from "rxjs";
+import { catchError, tap, retry } from "rxjs/operators";
 import { GravatarConfig, GravatarProfile } from "../models/gravatar.model";
 
 @Injectable({
@@ -11,26 +11,58 @@ export class GravatarService {
   private config = signal<GravatarConfig | null>(null);
   private profileCache = new Map<string, GravatarProfile>();
   private hashCache = new Map<string, string>(); // Cache email->hash mappings
+  private enableLogging = false; // Controlled by backend via config
 
   constructor(private http: HttpClient) {}
 
+  private log(...args: any[]): void {
+    if (this.enableLogging) {
+      console.log(...args);
+    }
+  }
+
+  private warn(...args: any[]): void {
+    if (this.enableLogging) {
+      console.warn(...args);
+    }
+  }
+
+  setLogging(enabled: boolean): void {
+    this.enableLogging = enabled;
+  }
+
   loadConfig(): Observable<GravatarConfig> {
-    console.log("[GravatarService] Loading Gravatar API configuration...");
+    this.log("[GravatarService] Loading Gravatar API configuration...");
     return this.http.get<GravatarConfig>("/api/gravatar/config").pipe(
+      retry({
+        count: 5,
+        delay: (error, retryCount) => {
+          const delay = Math.min(1000 * Math.pow(2, retryCount - 1), 10000);
+          this.log(
+            `[GravatarService] Retrying gravatar config load (attempt ${retryCount}/5) after ${delay}ms...`,
+          );
+          return timer(delay);
+        },
+      }),
       tap((config) => {
         this.config.set(config);
-        console.log("[GravatarService] Gravatar API key loaded successfully");
-        console.log(
+        // Enable logging if specified in config
+        if (config.enableLogging !== undefined) {
+          this.setLogging(config.enableLogging);
+        }
+        this.log("[GravatarService] Gravatar API key loaded successfully");
+        this.log(
           "[GravatarService] API key preview:",
           config.apiKey ? `${config.apiKey.substring(0, 10)}...` : "empty",
         );
+        this.log("[GravatarService] Logging enabled:", config.enableLogging);
       }),
       catchError((error) => {
-        console.warn(
+        this.warn(
           "[GravatarService] Gravatar API key not configured:",
           error.message,
         );
-        console.log(
+        this.log(
           "[GravatarService] Will use fallback avatar generation (identicons)",
         );
         return throwError(() => error);
@@ -40,7 +72,7 @@ export class GravatarService {
 
   isConfigured(): boolean {
     const configured = this.config() !== null && !!this.config()?.apiKey;
-    console.log("[GravatarService] Is configured:", configured);
+    this.log("[GravatarService] Is configured:", configured);
     return configured;
   }
 
@@ -50,29 +82,27 @@ export class GravatarService {
    * https://docs.gravatar.com/rest/getting-started/
    */
   getProfileByEmail(email: string): Observable<GravatarProfile | null> {
-    console.log("[GravatarService] Getting profile for email:", email);
+    this.log("[GravatarService] Getting profile for email:", email);
 
     if (!this.isConfigured()) {
-      console.log(
-        "[GravatarService] API not configured, skipping profile fetch",
-      );
+      this.log("[GravatarService] API not configured, skipping profile fetch");
       return of(null);
     }
 
     // Use proper SHA-256 hash asynchronously
     return new Observable<GravatarProfile | null>((observer) => {
       this.hashEmailAsync(email).then((hash) => {
-        console.log("[GravatarService] SHA-256 hash for profile:", hash);
+        this.log("[GravatarService] SHA-256 hash for profile:", hash);
 
         // Check cache first
         if (this.profileCache.has(hash)) {
-          console.log("[GravatarService] Profile found in cache");
+          this.log("[GravatarService] Profile found in cache");
           observer.next(this.profileCache.get(hash)!);
           observer.complete();
           return;
         }
 
-        console.log(
+        this.log(
           "[GravatarService] Fetching profile from API:",
           `https://api.gravatar.com/v3/profiles/${hash}`,
         );
@@ -90,7 +120,7 @@ export class GravatarService {
           )
           .pipe(
             tap((profile) => {
-              console.log("[GravatarService] Profile fetched successfully:", {
+              this.log("[GravatarService] Profile fetched successfully:", {
                 hash: profile.hash,
                 display_name: profile.display_name,
                 avatar_url: profile.avatar_url,
@@ -99,11 +129,11 @@ export class GravatarService {
               this.profileCache.set(hash, profile);
             }),
             catchError((error) => {
-              console.warn(
+              this.warn(
                 `[GravatarService] Gravatar profile not found for ${hash}:`,
                 error,
               );
-              console.log(
+              this.log(
                 "[GravatarService] Will use fallback avatar URL for this user",
               );
               return of(null);
@@ -123,20 +153,20 @@ export class GravatarService {
    * This is the correct implementation per Gravatar specs
    */
   async getAvatarUrlAsync(email: string, size: number = 200): Promise<string> {
-    console.log(
+    this.log(
       `[GravatarService] Getting avatar URL for email: "${email}", size: ${size}`,
     );
 
     if (!email) {
-      console.log("[GravatarService] Email is empty, returning default avatar");
+      this.log("[GravatarService] Email is empty, returning default avatar");
       return this.getDefaultAvatarUrl(size);
     }
 
     // Use proper SHA-256 hash
     const hash = await this.hashEmailAsync(email);
     const avatarUrl = `https://gravatar.com/avatar/${hash}?s=${size}&d=identicon&r=pg`;
-    console.log("[GravatarService] Generated avatar URL:", avatarUrl);
-    console.log("[GravatarService] SHA-256 hash:", hash);
+    this.log("[GravatarService] Generated avatar URL:", avatarUrl);
+    this.log("[GravatarService] SHA-256 hash:", hash);
     return avatarUrl;
   }
 
@@ -145,12 +175,12 @@ export class GravatarService {
    * Falls back to default avatar if hash not yet computed
    */
   getAvatarUrl(email: string, size: number = 200): string {
-    console.log(
+    this.log(
       `[GravatarService] Getting avatar URL (sync) for email: "${email}", size: ${size}`,
     );
 
     if (!email) {
-      console.log("[GravatarService] Email is empty, returning default avatar");
+      this.log("[GravatarService] Email is empty, returning default avatar");
       return this.getDefaultAvatarUrl(size);
     }
 
@@ -158,20 +188,18 @@ export class GravatarService {
     if (this.hashCache.has(email)) {
       const hash = this.hashCache.get(email)!;
       const avatarUrl = `https://gravatar.com/avatar/${hash}?s=${size}&d=identicon&r=pg`;
-      console.log("[GravatarService] Using cached SHA-256 hash:", hash);
+      this.log("[GravatarService] Using cached SHA-256 hash:", hash);
       return avatarUrl;
     }
 
     // Compute hash asynchronously and cache it for next time
     this.hashEmailAsync(email).then((hash) => {
       this.hashCache.set(email, hash);
-      console.log(
-        `[GravatarService] SHA-256 hash computed and cached: ${hash}`,
-      );
+      this.log(`[GravatarService] SHA-256 hash computed and cached: ${hash}`);
     });
 
     // Return default avatar as placeholder
-    console.log(
+    this.log(
       "[GravatarService] SHA-256 hash not yet computed, returning default",
     );
     return this.getDefaultAvatarUrl(size);
@@ -201,7 +229,7 @@ export class GravatarService {
     // BOTH steps are required: trim() then toLowerCase()
     const normalized = email.trim().toLowerCase();
 
-    console.log(
+    this.log(
       `[GravatarService] Hashing email with SHA-256: "${email}" -> normalized: "${normalized}"`,
     );
 
@@ -211,7 +239,7 @@ export class GravatarService {
     const hashArray = Array.from(new Uint8Array(hashBuffer));
     const hash = hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
 
-    console.log("[GravatarService] SHA-256 hash generated:", hash);
+    this.log("[GravatarService] SHA-256 hash generated:", hash);
     return hash;
   }
 
@@ -219,7 +247,7 @@ export class GravatarService {
    * Clear the profile cache
    */
   clearCache(): void {
-    console.log(
+    this.log(
       `[GravatarService] Clearing profile cache (${this.profileCache.size} entries)`,
     );
     this.profileCache.clear();

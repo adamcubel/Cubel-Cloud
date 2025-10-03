@@ -76,53 +76,119 @@
     } @else if (applications().length > 0) {
       <div class="mt-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
         @for (app of applications(); track app.id) {
-          <a
-            [href]="app.url"
-            [target]="isExternalUrl(app.url) ? '_blank' : '_self'"
-            [rel]="isExternalUrl(app.url) ? 'noopener noreferrer' : null"
-            class="block bg-white rounded-lg shadow-lg overflow-hidden transform hover:-translate-y-1 transition-transform duration-300 ease-in-out"
-          >
-            <div class="p-6">
-              <div class="flex items-center">
-                <div
-                  class="flex-shrink-0 bg-primary/10 text-primary rounded-md p-3"
-                >
-                  @if (isIconFilePath(app.icon)) {
-                    <!-- SVG file reference -->
-                    <img
-                      [src]="app.icon"
-                      [alt]="app.name + ' icon'"
-                      class="h-6 w-6"
-                    />
-                  } @else {
-                    <!-- Inline SVG path data -->
-                    <svg
-                      class="h-6 w-6"
-                      fill="currentColor"
-                      viewBox="0 0 24 24"
-                      aria-hidden="true"
+          @if (app.accessible) {
+            <a
+              [href]="app.url"
+              [target]="isExternalUrl(app.url) ? '_blank' : '_self'"
+              [rel]="isExternalUrl(app.url) ? 'noopener noreferrer' : null"
+              class="block bg-white dark:bg-slate-800 rounded-lg shadow-lg overflow-hidden transform hover:-translate-y-1 transition-transform duration-300 ease-in-out"
+            >
+              <div class="p-6">
+                <div class="flex items-center">
+                  <div
+                    class="flex-shrink-0 bg-primary/10 text-primary rounded-md p-3 dark:bg-slate-100"
+                  >
+                    @if (isIconFilePath(app.icon)) {
+                      <!-- SVG file reference -->
+                      <img
+                        [src]="app.icon"
+                        [alt]="app.name + ' icon'"
+                        class="h-6 w-6"
+                      />
+                    } @else {
+                      <!-- Inline SVG path data -->
+                      <svg
+                        class="h-6 w-6"
+                        fill="currentColor"
+                        viewBox="0 0 24 24"
+                        aria-hidden="true"
+                      >
+                        <path [attr.d]="app.icon"></path>
+                      </svg>
+                    }
+                  </div>
+                  <div class="ml-4">
+                    <h3
+                      class="text-lg font-medium text-slate-900 dark:text-slate-100"
                     >
-                      <path [attr.d]="app.icon"></path>
-                    </svg>
-                  }
+                      {{ app.name }}
+                    </h3>
+                  </div>
                 </div>
-                <div class="ml-4">
-                  <h3 class="text-lg font-medium text-slate-900">
-                    {{ app.name }}
-                  </h3>
-                </div>
+                <p class="mt-4 text-sm text-slate-500 dark:text-slate-400">
+                  {{ app.description }}
+                </p>
               </div>
-              <p class="mt-4 text-sm text-slate-500">
-                {{ app.description }}
-              </p>
+              <!-- <div class="px-6 py-4 bg-gray-50 dark:bg-slate-700 text-right">
+                <span
+                  class="text-sm font-semibold text-primary hover:text-primary-dark"
+                  >Launch App &rarr;</span
+                >
+              </div> -->
+            </a>
+          } @else {
+            <div
+              class="block bg-white dark:bg-slate-800 rounded-lg shadow-lg overflow-hidden opacity-60 cursor-not-allowed"
+              title="You do not have access to this application"
+            >
+              <div class="p-6">
+                <div class="flex items-center">
+                  <div
+                    class="flex-shrink-0 bg-slate-200 dark:bg-slate-700 text-slate-400 dark:text-slate-500 rounded-md p-3"
+                  >
+                    @if (isIconFilePath(app.icon)) {
+                      <!-- SVG file reference -->
+                      <img
+                        [src]="app.icon"
+                        [alt]="app.name + ' icon'"
+                        class="h-6 w-6 opacity-50"
+                      />
+                    } @else {
+                      <!-- Inline SVG path data -->
+                      <svg
+                        class="h-6 w-6"
+                        fill="currentColor"
+                        viewBox="0 0 24 24"
+                        aria-hidden="true"
+                      >
+                        <path [attr.d]="app.icon"></path>
+                      </svg>
+                    }
+                  </div>
+                  <div class="ml-4">
+                    <h3
+                      class="text-lg font-medium text-slate-500 dark:text-slate-400"
+                    >
+                      {{ app.name }}
+                    </h3>
+                  </div>
+                  <div class="ml-auto">
+                    <svg
+                      class="h-5 w-5 text-slate-400 dark:text-slate-500"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                      ></path>
+                    </svg>
+                  </div>
+                </div>
+                <p class="mt-4 text-sm text-slate-400 dark:text-slate-500">
+                  {{ app.description }}
+                </p>
+              </div>
+              <!-- <div class="px-6 py-4 bg-gray-50 dark:bg-slate-700 text-right">
+                <span class="text-sm font-semibold text-slate-400 dark:text-slate-500"
+                  >Access Restricted</span
+                >
+              </div> -->
             </div>
-            <div class="px-6 py-4 bg-gray-50 text-right">
-              <span
-                class="text-sm font-semibold text-primary hover:text-primary-dark"
-                >Launch App &rarr;</span
-              >
-            </div>
-          </a>
+          }
         }
       </div>
     } @else {

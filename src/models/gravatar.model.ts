@@ -24,4 +24,5 @@ export interface GravatarVerifiedAccount {
 
 export interface GravatarConfig {
   apiKey: string;
+  enableLogging?: boolean;
 }

@@ -31,32 +31,46 @@ export class AuthCallbackComponent implements OnInit {
   private oidcConfigService = inject(OidcConfigService);
   private oauthService = inject(OAuthService);
 
+  private log(...args: any[]): void {
+    const config = this.oidcConfigService.getConfig();
+    if (config?.showDebugInformation) {
+      console.log(...args);
+    }
+  }
+
+  private warn(...args: any[]): void {
+    const config = this.oidcConfigService.getConfig();
+    if (config?.showDebugInformation) {
+      console.warn(...args);
+    }
+  }
+
   async ngOnInit(): Promise<void> {
-    console.log("[AuthCallback] Component initialized");
-    console.log("[AuthCallback] Current URL:", window.location.href);
-    console.log("[AuthCallback] URL Hash:", window.location.hash);
-    console.log("[AuthCallback] URL Search:", window.location.search);
+    this.log("[AuthCallback] Component initialized");
+    this.log("[AuthCallback] Current URL:", window.location.href);
+    this.log("[AuthCallback] URL Hash:", window.location.hash);
+    this.log("[AuthCallback] URL Search:", window.location.search);
 
     try {
       // First, ensure OAuth is initialized (loads config and discovery document)
       if (!this.authService.isInitialized()) {
-        console.log("[AuthCallback] Initializing OAuth first...");
+        this.log("[AuthCallback] Initializing OAuth first...");
         await this.authService.initializeOAuth();
       }
 
       const config = this.oidcConfigService.getConfig();
 
       if (config?.showDebugInformation) {
-        console.log(
+        this.log(
           "[AuthCallback] PAUSED - Auto-redirect disabled for debugging",
         );
-        console.log(
+        this.log(
           "[AuthCallback] Set showDebugInformation to false in config to enable auto-redirect",
         );
       }
 
       // Process the callback - this will handle the tokens in the URL
-      console.log("[AuthCallback] Processing OIDC callback...");
+      this.log("[AuthCallback] Processing OIDC callback...");
       await this.authService.handleAuthCallback();
 
       // Wait a moment for the auth state to update
@@ -65,32 +79,30 @@ export class AuthCallbackComponent implements OnInit {
       const isLoggedIn = this.authService.isLoggedIn();
       const currentUser = this.authService.currentUser();
 
-      console.log("[AuthCallback] Checking authentication status");
-      console.log("[AuthCallback] Is logged in:", isLoggedIn);
-      console.log("[AuthCallback] Current user:", currentUser);
-      console.log(
+      this.log("[AuthCallback] Checking authentication status");
+      this.log("[AuthCallback] Is logged in:", isLoggedIn);
+      this.log("[AuthCallback] Current user:", currentUser);
+      this.log(
         "[AuthCallback] Has valid access token:",
         this.oauthService.hasValidAccessToken(),
       );
-      console.log(
+      this.log(
         "[AuthCallback] Has valid ID token:",
         this.oauthService.hasValidIdToken(),
       );
 
       if (isLoggedIn) {
-        console.log(
+        this.log(
           "[AuthCallback] User is logged in, navigating to /applications",
         );
         this.router.navigate(["/applications"]);
       } else {
-        console.warn(
-          "[AuthCallback] User is NOT logged in, navigating to /home",
-        );
+        this.warn("[AuthCallback] User is NOT logged in, navigating to /home");
         this.router.navigate(["/home"]);
       }
     } catch (error) {
       console.error("[AuthCallback] Error processing callback:", error);
-      console.log("[AuthCallback] Redirecting to home page after error");
+      this.log("[AuthCallback] Redirecting to home page after error");
       this.router.navigate(["/home"]);
     }
   }

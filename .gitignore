@@ -28,5 +28,6 @@ dist-ssr
 config/oidc.json
 config/applications.json
 config/gravatar-api-key
+config/database.json
 
 .continue

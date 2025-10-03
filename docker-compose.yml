@@ -18,6 +18,7 @@ services:
     environment:
       - NODE_ENV=production
       - FRONTEND_URL=http://localhost
+      - ENABLE_GRAVATAR_LOGGING=false
     restart: unless-stopped
 
   # Development mode

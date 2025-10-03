@@ -40,13 +40,13 @@ export class AuthService {
         // Pre-compute SHA-256 hash and update avatar URL
         this.gravatarService.getAvatarUrlAsync(user.email).then((url) => {
           this.userGravatarUrl.set(url);
-          console.log("[AuthService] Gravatar URL updated with SHA-256:", url);
+          this.log("[AuthService] Gravatar URL updated with SHA-256:", url);
         });
 
         // Get and store the hash for embedded profile
         this.gravatarService.getEmailHashAsync(user.email).then((hash) => {
           this.userGravatarHash.set(hash);
-          console.log("[AuthService] Gravatar hash for profile:", hash);
+          this.log("[AuthService] Gravatar hash for profile:", hash);
         });
       } else {
         this.userGravatarUrl.set("");
@@ -55,13 +55,27 @@ export class AuthService {
     });
   }
 
+  private log(...args: any[]): void {
+    const config = this.oidcConfigService.getConfig();
+    if (config?.showDebugInformation) {
+      console.log(...args);
+    }
+  }
+
+  private warn(...args: any[]): void {
+    const config = this.oidcConfigService.getConfig();
+    if (config?.showDebugInformation) {
+      console.warn(...args);
+    }
+  }
+
   isInitialized(): boolean {
     return this.initialized;
   }
 
   async initializeOAuth(): Promise<void> {
     if (this.initialized) {
-      console.log("[AuthService] Already initialized, skipping");
+      this.log("[AuthService] Already initialized, skipping");
       return;
     }
 
@@ -74,14 +88,14 @@ export class AuthService {
         firstValueFrom(
           this.applicationRegistryConfigService.loadConfig(),
         ).catch((error) => {
-          console.warn(
+          this.warn(
             "Application registry configuration not available, using default:",
             error.message,
           );
           return null;
         }),
         firstValueFrom(this.gravatarService.loadConfig()).catch((error) => {
-          console.warn(
+          this.warn(
             "Gravatar API key not configured, using fallback avatar:",
             error.message,
           );
@@ -92,7 +106,7 @@ export class AuthService {
       // Store application registry config if loaded
       if (appRegistryConfig) {
         this.applicationRegistryConfigService.setConfig(appRegistryConfig);
-        console.log(
+        this.log(
           "[AuthService] Loaded application registry with",
           appRegistryConfig.applications.length,
           "applications",
@@ -100,7 +114,7 @@ export class AuthService {
       }
 
       if (!config) {
-        console.warn(
+        this.warn(
           "OIDC configuration not available, using mock authentication",
         );
         this.isConfiguring.set(false);
@@ -139,32 +153,26 @@ export class AuthService {
         }),
       };
 
-      if (config.showDebugInformation) {
-        console.log("[AuthService] Configuring OAuth with:", {
-          issuer: config.issuer,
-          clientId: config.clientId,
-          redirectUri: config.redirectUri,
-          responseType: config.responseType,
-          scope: config.scope,
-          tokenEndpoint:
-            authConfig.tokenEndpoint || "default (from discovery document)",
-          useBackendTokenEndpoint,
-        });
-      }
+      this.log("[AuthService] Configuring OAuth with:", {
+        issuer: config.issuer,
+        clientId: config.clientId,
+        redirectUri: config.redirectUri,
+        responseType: config.responseType,
+        scope: config.scope,
+        tokenEndpoint:
+          authConfig.tokenEndpoint || "default (from discovery document)",
+        useBackendTokenEndpoint,
+      });
 
       this.oauthService.configure(authConfig);
 
-      if (config.showDebugInformation) {
-        console.log("[AuthService] Loading discovery document...");
-      }
+      this.log("[AuthService] Loading discovery document...");
 
       // Only load discovery document, don't try to login yet
       // The callback component will handle the login
       await this.oauthService.loadDiscoveryDocument();
 
-      if (config.showDebugInformation) {
-        console.log("[AuthService] Discovery document loaded");
-      }
+      this.log("[AuthService] Discovery document loaded");
 
       // Override token endpoint after discovery document is loaded
       // This is necessary because the discovery document sets the token endpoint
@@ -172,12 +180,10 @@ export class AuthService {
       if (useBackendTokenEndpoint) {
         (this.oauthService as any).tokenEndpoint =
           `${window.location.origin}/api/oidc/token`;
-        if (config.showDebugInformation) {
-          console.log(
-            "[AuthService] Token endpoint overridden to:",
-            `${window.location.origin}/api/oidc/token`,
-          );
-        }
+        this.log(
+          "[AuthService] Token endpoint overridden to:",
+          `${window.location.origin}/api/oidc/token`,
+        );
       }
 
       this.initialized = true;
@@ -187,9 +193,7 @@ export class AuthService {
         this.oauthService.hasValidAccessToken() ||
         this.oauthService.hasValidIdToken()
       ) {
-        if (config.showDebugInformation) {
-          console.log("[AuthService] Found existing valid tokens");
-        }
+        this.log("[AuthService] Found existing valid tokens");
         this.loadUserProfile();
       }
     } catch (error) {
@@ -200,76 +204,62 @@ export class AuthService {
   }
 
   async handleAuthCallback(): Promise<void> {
-    const config = this.oidcConfigService.getConfig();
-
-    if (config?.showDebugInformation) {
-      console.log("[AuthService] Handling auth callback");
-      console.log("[AuthService] Current URL:", window.location.href);
-      console.log("[AuthService] URL Hash:", window.location.hash);
-      console.log("[AuthService] URL Search params:", window.location.search);
-    }
+    this.log("[AuthService] Handling auth callback");
+    this.log("[AuthService] Current URL:", window.location.href);
+    this.log("[AuthService] URL Hash:", window.location.hash);
+    this.log("[AuthService] URL Search params:", window.location.search);
 
     try {
       // Try to login with the tokens in the URL
       const loginResult = await this.oauthService.tryLogin();
 
-      if (config?.showDebugInformation) {
-        console.log("[AuthService] tryLogin result:", loginResult);
-        console.log(
-          "[AuthService] Has valid access token:",
-          this.oauthService.hasValidAccessToken(),
-        );
-        console.log(
-          "[AuthService] Has valid ID token:",
-          this.oauthService.hasValidIdToken(),
-        );
-
-        if (
-          this.oauthService.hasValidAccessToken() ||
-          this.oauthService.hasValidIdToken()
-        ) {
-          const accessToken = this.oauthService.getAccessToken();
-          const idToken = this.oauthService.getIdToken();
-
-          // Log token info with sensitive data masked
-          if (accessToken) {
-            console.log(
-              "[AuthService] Access Token (first 20 chars):",
-              accessToken.substring(0, 20) + "...",
-            );
-            console.log(
-              "[AuthService] Token expiration:",
-              new Date(this.oauthService.getAccessTokenExpiration()),
-            );
-          }
-          if (idToken) {
-            console.log(
-              "[AuthService] ID Token (first 20 chars):",
-              idToken.substring(0, 20) + "...",
-            );
-          }
-          console.log(
-            "[AuthService] Identity Claims:",
-            this.sanitizeClaims(this.oauthService.getIdentityClaims()),
-          );
-        } else {
-          console.warn("[AuthService] No valid tokens found after callback");
-          console.log(
-            "[AuthService] LocalStorage keys:",
-            Object.keys(localStorage),
-          );
-          console.log(
-            "[AuthService] SessionStorage keys:",
-            Object.keys(sessionStorage),
-          );
-        }
-      }
+      this.log("[AuthService] tryLogin result:", loginResult);
+      this.log(
+        "[AuthService] Has valid access token:",
+        this.oauthService.hasValidAccessToken(),
+      );
+      this.log(
+        "[AuthService] Has valid ID token:",
+        this.oauthService.hasValidIdToken(),
+      );
 
       if (
         this.oauthService.hasValidAccessToken() ||
         this.oauthService.hasValidIdToken()
       ) {
+        const accessToken = this.oauthService.getAccessToken();
+        const idToken = this.oauthService.getIdToken();
+
+        // Log token info with sensitive data masked
+        if (accessToken) {
+          this.log(
+            "[AuthService] Access Token (first 20 chars):",
+            accessToken.substring(0, 20) + "...",
+          );
+          this.log(
+            "[AuthService] Token expiration:",
+            new Date(this.oauthService.getAccessTokenExpiration()),
+          );
+        }
+        if (idToken) {
+          this.log(
+            "[AuthService] ID Token (first 20 chars):",
+            idToken.substring(0, 20) + "...",
+          );
+        }
+        this.log(
+          "[AuthService] Identity Claims:",
+          this.sanitizeClaims(this.oauthService.getIdentityClaims()),
+        );
+
         this.loadUserProfile();
+      } else {
+        this.warn("[AuthService] No valid tokens found after callback");
+        this.log("[AuthService] LocalStorage keys:", Object.keys(localStorage));
+        this.log(
+          "[AuthService] SessionStorage keys:",
+          Object.keys(sessionStorage),
+        );
       }
     } catch (error) {
       console.error("[AuthService] Error handling auth callback:", error);
@@ -281,7 +271,7 @@ export class AuthService {
     if (this.oidcConfigService.isConfigured()) {
       this.oauthService.initLoginFlow();
     } else {
-      console.warn("OIDC not configured, redirecting to mock login");
+      this.warn("OIDC not configured, redirecting to mock login");
       this.router.navigate(["/login"]);
     }
   }
@@ -326,31 +316,20 @@ export class AuthService {
   private setupOAuthEvents(): void {
     // Log all OAuth events when debug mode is enabled
     this.oauthService.events.subscribe((event) => {
-      const config = this.oidcConfigService.getConfig();
-      if (config?.showDebugInformation) {
-        console.log("[AuthService] OAuth Event:", event.type, event);
-      }
+      this.log("[AuthService] OAuth Event:", event.type, event);
     });
 
     this.oauthService.events
       .pipe(filter((e) => e.type === "token_received"))
       .subscribe(() => {
-        const config = this.oidcConfigService.getConfig();
-        if (config?.showDebugInformation) {
-          console.log(
-            "[AuthService] Token received event - loading user profile",
-          );
-        }
+        this.log("[AuthService] Token received event - loading user profile");
         this.loadUserProfile();
       });
 
     this.oauthService.events
       .pipe(filter((e) => e.type === "logout"))
       .subscribe(() => {
-        const config = this.oidcConfigService.getConfig();
-        if (config?.showDebugInformation) {
-          console.log("[AuthService] Logout event received");
-        }
+        this.log("[AuthService] Logout event received");
         this.currentUser.set(null);
         this.router.navigate(["/home"]);
       });
@@ -358,14 +337,11 @@ export class AuthService {
 
   private loadUserProfile(): void {
     const claims = this.oauthService.getIdentityClaims();
-    const config = this.oidcConfigService.getConfig();
 
-    if (config?.showDebugInformation) {
-      console.log(
-        "[AuthService] Loading user profile from claims:",
-        this.sanitizeClaims(claims),
-      );
-    }
+    this.log(
+      "[AuthService] Loading user profile from claims:",
+      this.sanitizeClaims(claims),
+    );
 
     if (claims) {
       // Parse apps claim - could be string array or comma-separated string
@@ -389,23 +365,16 @@ export class AuthService {
         apps: apps.length > 0 ? apps : undefined,
       };
 
-      if (config?.showDebugInformation) {
-        console.log("[AuthService] User profile created:", user);
-        console.log("[AuthService] Apps from token:", apps);
-        console.log("[AuthService] Setting currentUser signal");
-      }
+      this.log("[AuthService] User profile created:", user);
+      this.log("[AuthService] Apps from token:", apps);
+      this.log("[AuthService] Setting currentUser signal");
 
       this.currentUser.set(user);
 
-      if (config?.showDebugInformation) {
-        console.log(
-          "[AuthService] Current user after set:",
-          this.currentUser(),
-        );
-        console.log("[AuthService] Is logged in:", this.isLoggedIn());
-      }
-    } else if (config?.showDebugInformation) {
-      console.warn("[AuthService] No identity claims available");
+      this.log("[AuthService] Current user after set:", this.currentUser());
+      this.log("[AuthService] Is logged in:", this.isLoggedIn());
+    } else {
+      this.warn("[AuthService] No identity claims available");
     }
   }
 

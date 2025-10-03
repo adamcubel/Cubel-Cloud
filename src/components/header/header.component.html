@@ -80,6 +80,14 @@
                 class="text-gray-600 dark:text-slate-300 hover:text-primary px-3 py-2 rounded-md text-sm font-medium border-b-2 border-transparent"
                 >My Applications</a
               >
+              @if (authService.currentUser()?.role === "admin") {
+                <a
+                  routerLink="/user-management"
+                  routerLinkActive="text-primary border-primary"
+                  class="text-gray-600 dark:text-slate-300 hover:text-primary px-3 py-2 rounded-md text-sm font-medium border-b-2 border-transparent"
+                  >User Management</a
+                >
+              }
             }
           </div>
         </div>
@@ -147,22 +155,63 @@
                 @if (isProfileDropdownOpen()) {
                   <div
                     class="absolute right-0 mt-2 bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden z-50"
-                    style="width: 336"
+                    style="width: 336px"
                   >
-                    <!-- Embedded Gravatar Profile Card -->
-                    @if (authService.userGravatarHash()) {
+                    <!-- Show Gravatar profile card only if profile exists -->
+                    @if (
+                      gravatarProfileExists() === true &&
+                      authService.userGravatarHash()
+                    ) {
                       <div class="gravatar-profile-container">
                         <iframe
                           [src]="getGravatarProfileUrl()"
                           width="332"
-                          height="360"
+                          height="352"
                           style="border: 0; margin: 0; padding: 0"
                           title="Gravatar Profile Card"
                         ></iframe>
                       </div>
+                    } @else if (gravatarProfileExists() === false) {
+                      <!-- Fallback profile using OIDC user data -->
+                      <div class="px-4 py-8 text-center">
+                        <div class="space-y-4">
+                          <img
+                            [src]="authService.userGravatarUrl()"
+                            [alt]="authService.currentUser()?.name + ' avatar'"
+                            class="w-24 h-24 rounded-full mx-auto border-4 border-slate-200 dark:border-slate-600"
+                          />
+                          <div class="space-y-2">
+                            <h3
+                              class="text-lg font-semibold text-slate-900 dark:text-slate-100"
+                            >
+                              {{ authService.currentUser()?.name }}
+                            </h3>
+                            <p
+                              class="text-sm text-slate-600 dark:text-slate-400"
+                            >
+                              {{ authService.currentUser()?.email }}
+                            </p>
+                            @if (authService.currentUser()?.role) {
+                              <p
+                                class="text-xs text-slate-500 dark:text-slate-500 uppercase tracking-wide"
+                              >
+                                {{ authService.currentUser()?.role }}
+                              </p>
+                            }
+                          </div>
+                          <a
+                            href="https://gravatar.com/"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="inline-block px-4 py-2 text-xs font-medium text-white bg-gradient-diagonal hover:bg-none hover:bg-primary rounded-md transition-colors mt-2"
+                          >
+                            Want to create your Gravatar Profile?
+                          </a>
+                        </div>
+                      </div>
                     } @else {
-                      <!-- Fallback for when hash is not yet computed -->
-                      <div class="px-4 py-8 text-center" style="height: 228px">
+                      <!-- Loading state while checking if profile exists -->
+                      <div class="px-4 py-8 text-center">
                         <div class="animate-pulse space-y-4">
                           <div
                             class="w-24 h-24 bg-slate-200 dark:bg-slate-700 rounded-full mx-auto"
@@ -246,6 +295,15 @@
               class="block px-3 py-2 rounded-md text-base font-medium text-gray-600 dark:text-slate-300 hover:text-primary hover:bg-primary/10 dark:hover:bg-primary/20 transition-colors"
               >My Applications</a
             >
+            @if (authService.currentUser()?.role === "admin") {
+              <a
+                routerLink="/user-management"
+                routerLinkActive="bg-primary/20 text-primary dark:bg-primary/30"
+                (click)="closeMobileMenu()"
+                class="block px-3 py-2 rounded-md text-base font-medium text-gray-600 dark:text-slate-300 hover:text-primary hover:bg-primary/10 dark:hover:bg-primary/20 transition-colors"
+                >User Management</a
+              >
+            }
           }
         </div>
       </div>

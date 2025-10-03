@@ -33,8 +33,8 @@ export class ApplicationsComponent implements OnInit {
         this.isUnvalidated.set(true);
         this.applications.set([]);
       } else {
-        // Use the new getApplicationsForUser which respects the apps claim from OIDC
-        const apps = this.applicationService.getApplicationsForUser(user);
+        // Show all applications with accessibility marked
+        const apps = this.applicationService.getAllApplicationsWithAccess(user);
         this.applications.set(apps);
       }
     }

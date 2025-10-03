@@ -70,19 +70,40 @@ export class ApplicationService {
   /**
    * Get applications for a user based on their apps claim from OIDC token
    * Falls back to role-based filtering if no apps claim is present
+   * Filters out private applications unless user is an admin
    */
   getApplicationsForUser(user: User): Application[] {
     const registry = this.getApplicationRegistry();
+    const isAdmin = user.role === "admin";
 
     // If user has apps claim, use that
     if (user.apps && user.apps.length > 0) {
       return user.apps
         .map((appId) => registry[appId])
-        .filter((app) => app !== undefined);
+        .filter((app) => app !== undefined && (!app.private || isAdmin));
     }
 
     // Fallback to role-based filtering
     return this.getApplicationsForRole(user.role);
+  }
+
+  /**
+   * Get all applications with accessibility marked for a user
+   * Shows all applications but marks which ones the user can access
+   * Filters out private applications unless user is an admin
+   */
+  getAllApplicationsWithAccess(user: User): Application[] {
+    const allApps = this.getAllApplications();
+    const userApps = this.getApplicationsForUser(user);
+    const accessibleIds = new Set(userApps.map((app) => app.id));
+    const isAdmin = user.role === "admin";
+
+    return allApps
+      .filter((app) => !app.private || isAdmin) // Hide private apps from non-admins
+      .map((app) => ({
+        ...app,
+        accessible: accessibleIds.has(app.id),
+      }));
   }
 
   /**
@@ -91,16 +112,19 @@ export class ApplicationService {
    */
   getApplicationsForRole(role: UserRole): Application[] {
     const allApps = Object.values(this.getApplicationRegistry());
+    const isAdmin = role === "admin";
 
     switch (role) {
       case "admin":
-        return allApps;
+        return allApps; // Admins see all apps including private ones
       case "user":
-        return allApps.filter((app) =>
-          ["dashboard", "content", "support"].includes(app.id),
+        return allApps.filter(
+          (app) =>
+            ["dashboard", "content", "support"].includes(app.id) &&
+            !app.private,
         );
       case "guest":
-        return allApps.filter((app) => app.id === "dashboard");
+        return allApps.filter((app) => app.id === "dashboard" && !app.private);
       default:
         return [];
     }

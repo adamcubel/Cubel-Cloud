@@ -2,6 +2,7 @@ const express = require("express");
 const fs = require("fs");
 const path = require("path");
 const cors = require("cors");
+const db = require("./database.cjs");
 
 const app = express();
 const port = process.env.OIDC_SERVER_PORT || 3001;
@@ -16,15 +17,34 @@ app.use(
 app.use(express.json());
 app.use(express.urlencoded({ extended: true })); // Parse URL-encoded bodies (for OAuth token requests)
 
+// Request logging middleware
+app.use((req, _res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
+  next();
+});
+
+// Error handling middleware
+app.use((err, _req, res, _next) => {
+  console.error("[Server] Unhandled error:", err);
+  res.status(500).json({
+    error: "Internal server error",
+    message: err.message,
+  });
+});
+
 function loadConfigSafely(filePath) {
   try {
     if (fs.existsSync(filePath)) {
       const fileContent = fs.readFileSync(filePath, "utf8");
       return JSON.parse(fileContent);
     }
+    console.warn(`[Config] File not found: ${filePath}`);
     return null;
   } catch (error) {
-    console.error(`Error loading config from ${filePath}:`, error.message);
+    console.error(
+      `[Config] Error loading config from ${filePath}:`,
+      error.message,
+    );
     return null;
   }
 }
@@ -182,7 +202,13 @@ app.get("/api/gravatar/config", (req, res) => {
         });
       }
 
-      res.json({ apiKey });
+      // Check for ENABLE_GRAVATAR_LOGGING environment variable
+      const enableLogging = process.env.ENABLE_GRAVATAR_LOGGING === "true";
+
+      res.json({
+        apiKey,
+        enableLogging,
+      });
     } else {
       res.status(404).json({
         error: "Gravatar API key not found",
@@ -203,9 +229,300 @@ app.get("/health", (req, res) => {
   res.json({ status: "healthy", timestamp: new Date().toISOString() });
 });
 
-app.listen(port, () => {
-  console.log(`OIDC configuration server running on port ${port}`);
-  console.log(`Health check available at http://localhost:${port}/health`);
+// Access Request API endpoints
+
+// Get all access requests (admin only)
+app.get("/api/access-requests", async (req, res) => {
+  if (!db.isAvailable()) {
+    return res.status(503).json({
+      error: "Database not configured",
+      message: "Please configure database connection",
+    });
+  }
+
+  try {
+    const result = await db.query(
+      `SELECT id, user_id, user_email, user_name, application_id, application_name,
+              status, requested_at, processed_at, processed_by, notes
+       FROM access_requests
+       ORDER BY
+         CASE WHEN status = 'pending' THEN 0 ELSE 1 END,
+         requested_at DESC`,
+    );
+
+    res.json({ requests: result.rows });
+  } catch (error) {
+    console.error("[API] Failed to fetch access requests:", error);
+    res.status(500).json({
+      error: "Failed to fetch access requests",
+      message: error.message,
+    });
+  }
 });
+
+// Create a new access request
+app.post("/api/access-requests", async (req, res) => {
+  if (!db.isAvailable()) {
+    return res.status(503).json({
+      error: "Database not configured",
+      message: "Please configure database connection",
+    });
+  }
+
+  const { userId, userEmail, userName, applicationId, applicationName } =
+    req.body;
+
+  if (
+    !userId ||
+    !userEmail ||
+    !userName ||
+    !applicationId ||
+    !applicationName
+  ) {
+    return res.status(400).json({
+      error: "Missing required fields",
+      message:
+        "userId, userEmail, userName, applicationId, and applicationName are required",
+    });
+  }
+
+  try {
+    // Check if request already exists
+    const existingResult = await db.query(
+      `SELECT id, status FROM access_requests
+       WHERE user_id = $1 AND application_id = $2 AND status = 'pending'`,
+      [userId, applicationId],
+    );
+
+    if (existingResult.rows.length > 0) {
+      return res.status(409).json({
+        error: "Request already exists",
+        message: "You already have a pending request for this application",
+      });
+    }
+
+    const result = await db.query(
+      `INSERT INTO access_requests (user_id, user_email, user_name, application_id, application_name)
+       VALUES ($1, $2, $3, $4, $5)
+       RETURNING id, user_id, user_email, user_name, application_id, application_name,
+                 status, requested_at`,
+      [userId, userEmail, userName, applicationId, applicationName],
+    );
+
+    res.status(201).json({ request: result.rows[0] });
+  } catch (error) {
+    console.error("[API] Failed to create access request:", error);
+    res.status(500).json({
+      error: "Failed to create access request",
+      message: error.message,
+    });
+  }
+});
+
+// Approve an access request (admin only)
+app.post("/api/access-requests/:id/approve", async (req, res) => {
+  if (!db.isAvailable()) {
+    return res.status(503).json({
+      error: "Database not configured",
+      message: "Please configure database connection",
+    });
+  }
+
+  const { id } = req.params;
+  const { processedBy } = req.body;
+
+  if (!processedBy) {
+    return res.status(400).json({
+      error: "Missing required field",
+      message: "processedBy is required",
+    });
+  }
+
+  try {
+    const result = await db.query(
+      `UPDATE access_requests
+       SET status = 'approved', processed_at = NOW(), processed_by = $1
+       WHERE id = $2 AND status = 'pending'
+       RETURNING id, user_id, user_email, user_name, application_id, application_name,
+                 status, requested_at, processed_at, processed_by`,
+      [processedBy, id],
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        error: "Request not found",
+        message: "Access request not found or already processed",
+      });
+    }
+
+    res.json({ request: result.rows[0] });
+  } catch (error) {
+    console.error("[API] Failed to approve access request:", error);
+    res.status(500).json({
+      error: "Failed to approve access request",
+      message: error.message,
+    });
+  }
+});
+
+// Reject an access request (admin only)
+app.post("/api/access-requests/:id/reject", async (req, res) => {
+  if (!db.isAvailable()) {
+    return res.status(503).json({
+      error: "Database not configured",
+      message: "Please configure database connection",
+    });
+  }
+
+  const { id } = req.params;
+  const { processedBy, notes } = req.body;
+
+  if (!processedBy) {
+    return res.status(400).json({
+      error: "Missing required field",
+      message: "processedBy is required",
+    });
+  }
+
+  try {
+    const result = await db.query(
+      `UPDATE access_requests
+       SET status = 'rejected', processed_at = NOW(), processed_by = $1, notes = $2
+       WHERE id = $3 AND status = 'pending'
+       RETURNING id, user_id, user_email, user_name, application_id, application_name,
+                 status, requested_at, processed_at, processed_by, notes`,
+      [processedBy, notes || null, id],
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        error: "Request not found",
+        message: "Access request not found or already processed",
+      });
+    }
+
+    res.json({ request: result.rows[0] });
+  } catch (error) {
+    console.error("[API] Failed to reject access request:", error);
+    res.status(500).json({
+      error: "Failed to reject access request",
+      message: error.message,
+    });
+  }
+});
+
+// Database API endpoints
+app.get("/api/database/health", async (req, res) => {
+  if (!db.isAvailable()) {
+    return res.status(503).json({
+      status: "unavailable",
+      message: "Database not configured or connection failed",
+    });
+  }
+
+  try {
+    const result = await db.query("SELECT NOW() as now, version() as version");
+    res.json({
+      status: "healthy",
+      timestamp: result.rows[0].now,
+      version: result.rows[0].version,
+    });
+  } catch (error) {
+    res.status(503).json({
+      status: "unhealthy",
+      error: error.message,
+    });
+  }
+});
+
+// Example: Execute a query (protected endpoint - you should add authentication)
+app.post("/api/database/query", async (req, res) => {
+  if (!db.isAvailable()) {
+    return res.status(503).json({
+      error: "Database not configured",
+      message:
+        "Please create config/database.json from config/database.example.json",
+    });
+  }
+
+  const { query, params } = req.body;
+
+  if (!query) {
+    return res.status(400).json({
+      error: "Missing required parameter",
+      message: "Query text is required",
+    });
+  }
+
+  try {
+    const result = await db.query(query, params || []);
+    res.json({
+      rows: result.rows,
+      rowCount: result.rowCount,
+      fields: result.fields.map((f) => ({
+        name: f.name,
+        dataTypeID: f.dataTypeID,
+      })),
+    });
+  } catch (error) {
+    console.error("[API] Database query error:", error);
+    res.status(500).json({
+      error: "Query execution failed",
+      message: error.message,
+    });
+  }
+});
+
+// Graceful shutdown
+process.on("SIGTERM", async () => {
+  console.log("SIGTERM signal received: closing HTTP server");
+  await db.closePool();
+  process.exit(0);
+});
+
+process.on("SIGINT", async () => {
+  console.log("SIGINT signal received: closing HTTP server");
+  await db.closePool();
+  process.exit(0);
+});
+
+// Initialize and start server
+async function startServer() {
+  try {
+    // Initialize database connection
+    console.log("[Server] Initializing database connection...");
+    db.initializePool();
+
+    // Initialize database schema if database is available
+    if (db.isAvailable()) {
+      console.log("[Server] Database available, initializing schema...");
+      await db.initializeSchema();
+    } else {
+      console.warn(
+        "[Server] Database not configured - database features will be unavailable",
+      );
+    }
+
+    // Start the Express server
+    app.listen(port, () => {
+      console.log(`[Server] OIDC configuration server running on port ${port}`);
+      console.log(
+        `[Server] Health check available at http://localhost:${port}/health`,
+      );
+      if (db.isAvailable()) {
+        console.log(
+          `[Server] Database health check available at http://localhost:${port}/api/database/health`,
+        );
+      }
+      console.log("[Server] Server initialization complete");
+    });
+  } catch (error) {
+    console.error("[Server] Failed to start server:", error);
+    process.exit(1);
+  }
+}
+
+// Start the server
+startServer();
 
 module.exports = app;

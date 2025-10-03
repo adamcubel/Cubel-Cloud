@@ -175,3 +175,130 @@ See [../OIDC-SETUP.md](../OIDC-SETUP.md) for OIDC configuration details.
 ### File: `oidc.json`
 
 Configure OpenID Connect authentication. See the OIDC setup guide for details.
+
+## Database Configuration
+
+### File: `database.json`
+
+Configure PostgreSQL database connection for the application.
+
+#### Setup
+
+1. Copy the example file:
+
+   ```bash
+   cp database.example.json database.json
+   ```
+
+2. Edit `database.json` with your PostgreSQL connection details:
+   ```json
+   {
+     "host": "localhost",
+     "port": 5432,
+     "database": "cubel_cloud",
+     "user": "cubel_user",
+     "password": "your_secure_password_here",
+     "ssl": false,
+     "max": 20,
+     "idleTimeoutMillis": 30000,
+     "connectionTimeoutMillis": 2000
+   }
+   ```
+
+#### Configuration Properties
+
+- **host** (string, required): PostgreSQL server hostname or IP address
+- **port** (number, optional): PostgreSQL server port (default: 5432)
+- **database** (string, required): Name of the database to connect to
+- **user** (string, required): Database user for authentication
+- **password** (string, required): Database password for authentication
+- **ssl** (boolean or object, optional): Enable SSL/TLS connection
+  - `false`: No SSL (default)
+  - `true`: SSL with default settings (rejectUnauthorized: false)
+  - `{ rejectUnauthorized: true, ca: '...' }`: Custom SSL configuration
+- **max** (number, optional): Maximum number of clients in the connection pool (default: 20)
+- **idleTimeoutMillis** (number, optional): Close idle clients after N milliseconds (default: 30000)
+- **connectionTimeoutMillis** (number, optional): Connection timeout in milliseconds (default: 2000)
+
+#### Docker Configuration
+
+The `database.json` file is mounted into the container at runtime:
+
+```yaml
+volumes:
+  - ./config/database.json:/app/config/database.json:ro
+```
+
+To update the configuration:
+
+1. Edit your local `config/database.json`
+2. Restart the container: `docker-compose restart`
+
+#### Database Health Check
+
+Check database connection status:
+
+```bash
+curl http://localhost:3001/api/database/health
+```
+
+Response when healthy:
+
+```json
+{
+  "status": "healthy",
+  "timestamp": "2025-10-02T12:34:56.789Z",
+  "version": "PostgreSQL 15.4 on x86_64-pc-linux-gnu..."
+}
+```
+
+#### Using the Database Connection
+
+The database connection is available via the `/api/database/query` endpoint:
+
+```bash
+curl -X POST http://localhost:3001/api/database/query \
+  -H "Content-Type: application/json" \
+  -d '{"query": "SELECT * FROM users LIMIT 10"}'
+```
+
+**Security Note:** The query endpoint should be protected with authentication in production environments.
+
+#### Connection Pooling
+
+The application uses connection pooling for efficient database access:
+
+- Connections are reused across requests
+- Idle connections are automatically closed after the configured timeout
+- Maximum pool size prevents resource exhaustion
+- Failed connections are automatically retried
+
+#### Fallback Behavior
+
+If `database.json` is not found or contains invalid configuration:
+
+- The application will start normally
+- Database endpoints will return `503 Service Unavailable`
+- A warning will be logged in the console
+- No disruption to non-database features
+
+#### Example PostgreSQL Setup
+
+Create a database and user for the application:
+
+```sql
+-- Create database
+CREATE DATABASE cubel_cloud;
+
+-- Create user
+CREATE USER cubel_user WITH PASSWORD 'your_secure_password_here';
+
+-- Grant privileges
+GRANT ALL PRIVILEGES ON DATABASE cubel_cloud TO cubel_user;
+
+-- Connect to the database
+\c cubel_cloud
+
+-- Grant schema privileges
+GRANT ALL ON SCHEMA public TO cubel_user;
+```
