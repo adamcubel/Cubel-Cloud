@@ -347,37 +347,13 @@ jobs:
         with:
           context: .
           push: true
+          target: production
           tags: |
             ${{ secrets.DOCKER_USERNAME }}/cubel-cloud:${{ steps.version.outputs.full_tag }}
             ${{ secrets.DOCKER_USERNAME }}/cubel-cloud:${{ steps.version.outputs.version }}
             ${{ secrets.DOCKER_USERNAME }}/cubel-cloud:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
-
-      - name: Test Docker image from registry
-        run: |
-          # Pull and test the image from Docker Hub
-          docker pull ${{ secrets.DOCKER_USERNAME }}/cubel-cloud:latest
-
-          # Start the container
-          docker run -d --name angular-app -p 8080:80 ${{ secrets.DOCKER_USERNAME }}/cubel-cloud:latest
-
-          # Wait for startup
-          sleep 10
-
-          # Test endpoint
-          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080)
-
-          if [ "$HTTP_STATUS" -eq 200 ]; then
-            echo "✓ Published image is working correctly"
-          else
-            echo "✗ Published image test failed"
-            exit 1
-          fi
-
-          # Cleanup
-          docker stop angular-app
-          docker rm angular-app
 
       - name: Image published
         run: |

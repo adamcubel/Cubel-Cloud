@@ -23,25 +23,24 @@ services:
       - ENABLE_GRAVATAR_LOGGING=false
     restart: unless-stopped
 
-  # Development mode
-  cubel-cloud-dev:
-    build:
-      context: .
-      target: development
+  # Published image
+  published:
+    image: docker.io/cubel/cubel-cloud:v0.0.1
+    platform: linux/amd64
     ports:
-      - "3000:3000"
+      - "80:80"
       - "3001:3001"
     volumes:
-      - .:/app
-      - /app/node_modules
+      # Mount Database config
+      - ./config/database.json:/app/config/database.json:ro
+      # Mount OIDC configuration (create this file based on the example)
       - ./config/oidc.json:/app/config/oidc.json:ro
+      # Mount application registry configuration (create this file based on the example)
       - ./config/applications.json:/app/config/applications.json:ro
+      # Mount Gravatar API key (optional - for enhanced avatar support)
       - ./config/gravatar-api-key:/app/config/gravatar-api-key:ro
     environment:
-      - NODE_ENV=development
-      - FRONTEND_URL=http://localhost:3000
-    command: >
-      sh -c "npm run server &
-             npm run dev"
-    profiles:
-      - dev
+      - NODE_ENV=production
+      - FRONTEND_URL=http://localhost
+      - ENABLE_GRAVATAR_LOGGING=false
+    restart: unless-stopped
