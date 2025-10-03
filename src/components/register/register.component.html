@@ -1,0 +1,182 @@
+<div
+  class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8"
+>
+  <div class="max-w-md w-full space-y-8">
+    <div>
+      <h2
+        class="mt-6 text-center text-3xl font-extrabold text-slate-900 dark:text-slate-100"
+      >
+        Get Started with Cubel Cloud
+      </h2>
+      <p class="mt-2 text-center text-sm text-slate-600 dark:text-slate-300">
+        Fill out the form below to request access
+      </p>
+    </div>
+
+    @if (success()) {
+      <div class="rounded-md bg-green-50 dark:bg-green-900/20 p-4">
+        <div class="flex">
+          <div class="ml-3">
+            <h3 class="text-sm font-medium text-green-800 dark:text-green-200">
+              Registration request submitted successfully!
+            </h3>
+            <p class="mt-2 text-sm text-green-700 dark:text-green-300">
+              Your request has been submitted for review. An administrator will
+              process it shortly.
+            </p>
+          </div>
+        </div>
+      </div>
+    }
+
+    @if (error()) {
+      <div class="rounded-md bg-red-50 dark:bg-red-900/20 p-4">
+        <div class="flex">
+          <div class="ml-3">
+            <h3 class="text-sm font-medium text-red-800 dark:text-red-200">
+              {{ error() }}
+            </h3>
+          </div>
+        </div>
+      </div>
+    }
+
+    <form
+      [formGroup]="registrationForm"
+      (ngSubmit)="onSubmit()"
+      class="mt-8 space-y-6"
+    >
+      <div class="rounded-md shadow-sm space-y-4">
+        <div>
+          <label
+            for="email"
+            class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1"
+          >
+            Email Address *
+          </label>
+          <input
+            id="email"
+            type="email"
+            formControlName="email"
+            class="appearance-none relative block w-full px-3 py-2 border border-slate-300 dark:border-slate-600 placeholder-slate-500 dark:placeholder-slate-400 text-slate-900 dark:text-slate-100 rounded-md focus:outline-none focus:ring-primary focus:border-primary focus:z-10 sm:text-sm bg-white dark:bg-slate-800"
+            placeholder="you@example.com"
+            [class.border-red-500]="submitted && f['email'].errors"
+          />
+          @if (submitted && f["email"].errors) {
+            <p class="mt-1 text-sm text-red-600 dark:text-red-400">
+              @if (f["email"].errors["required"]) {
+                Email is required
+              }
+              @if (f["email"].errors["email"]) {
+                Please enter a valid email address
+              }
+            </p>
+          }
+        </div>
+
+        <div>
+          <label
+            for="firstName"
+            class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1"
+          >
+            First Name *
+          </label>
+          <input
+            id="firstName"
+            type="text"
+            formControlName="firstName"
+            class="appearance-none relative block w-full px-3 py-2 border border-slate-300 dark:border-slate-600 placeholder-slate-500 dark:placeholder-slate-400 text-slate-900 dark:text-slate-100 rounded-md focus:outline-none focus:ring-primary focus:border-primary focus:z-10 sm:text-sm bg-white dark:bg-slate-800"
+            placeholder="John"
+            [class.border-red-500]="submitted && f['firstName'].errors"
+          />
+          @if (submitted && f["firstName"].errors) {
+            <p class="mt-1 text-sm text-red-600 dark:text-red-400">
+              @if (f["firstName"].errors["required"]) {
+                First name is required
+              }
+              @if (f["firstName"].errors["minlength"]) {
+                First name must be at least 2 characters
+              }
+            </p>
+          }
+        </div>
+
+        <div>
+          <label
+            for="lastName"
+            class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1"
+          >
+            Last Name *
+          </label>
+          <input
+            id="lastName"
+            type="text"
+            formControlName="lastName"
+            class="appearance-none relative block w-full px-3 py-2 border border-slate-300 dark:border-slate-600 placeholder-slate-500 dark:placeholder-slate-400 text-slate-900 dark:text-slate-100 rounded-md focus:outline-none focus:ring-primary focus:border-primary focus:z-10 sm:text-sm bg-white dark:bg-slate-800"
+            placeholder="Doe"
+            [class.border-red-500]="submitted && f['lastName'].errors"
+          />
+          @if (submitted && f["lastName"].errors) {
+            <p class="mt-1 text-sm text-red-600 dark:text-red-400">
+              @if (f["lastName"].errors["required"]) {
+                Last name is required
+              }
+              @if (f["lastName"].errors["minlength"]) {
+                Last name must be at least 2 characters
+              }
+            </p>
+          }
+        </div>
+
+        <div>
+          <label
+            for="reason"
+            class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1"
+          >
+            Why would you like to use this application? *
+          </label>
+          <textarea
+            id="reason"
+            formControlName="reason"
+            rows="4"
+            class="appearance-none relative block w-full px-3 py-2 border border-slate-300 dark:border-slate-600 placeholder-slate-500 dark:placeholder-slate-400 text-slate-900 dark:text-slate-100 rounded-md focus:outline-none focus:ring-primary focus:border-primary focus:z-10 sm:text-sm bg-white dark:bg-slate-800"
+            placeholder="Please provide a brief explanation..."
+            [class.border-red-500]="submitted && f['reason'].errors"
+          ></textarea>
+          @if (submitted && f["reason"].errors) {
+            <p class="mt-1 text-sm text-red-600 dark:text-red-400">
+              @if (f["reason"].errors["required"]) {
+                Please provide a reason
+              }
+              @if (f["reason"].errors["minlength"]) {
+                Please provide at least 10 characters
+              }
+            </p>
+          }
+        </div>
+      </div>
+
+      <div class="flex items-center justify-between gap-4">
+        <a
+          routerLink="/"
+          class="text-sm font-medium text-primary hover:text-primary-dark"
+        >
+          Back to Home
+        </a>
+        <button
+          type="submit"
+          [disabled]="submitting() || success()"
+          class="group relative flex justify-center py-2 px-4 text-sm font-medium rounded-md text-white bg-gradient-diagonal hover:bg-none hover:bg-primary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          @if (submitting()) {
+            Submitting...
+          } @else if (success()) {
+            Submitted!
+          } @else {
+            Submit Request
+          }
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

@@ -1,0 +1,47 @@
+version: "3.8"
+
+services:
+  cubel-cloud:
+    build:
+      context: .
+      target: production
+    ports:
+      - "80:80"
+      - "3001:3001"
+    volumes:
+      # Mount Database config
+      - ./config/database.json:/app/config/database.json:ro
+      # Mount OIDC configuration (create this file based on the example)
+      - ./config/oidc.json:/app/config/oidc.json:ro
+      # Mount application registry configuration (create this file based on the example)
+      - ./config/applications.json:/app/config/applications.json:ro
+      # Mount Gravatar API key (optional - for enhanced avatar support)
+      - ./config/gravatar-api-key:/app/config/gravatar-api-key:ro
+    environment:
+      - NODE_ENV=production
+      - FRONTEND_URL=http://localhost
+      - ENABLE_GRAVATAR_LOGGING=false
+    restart: unless-stopped
+
+  # Development mode
+  cubel-cloud-dev:
+    build:
+      context: .
+      target: development
+    ports:
+      - "3000:3000"
+      - "3001:3001"
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - ./config/oidc.json:/app/config/oidc.json:ro
+      - ./config/applications.json:/app/config/applications.json:ro
+      - ./config/gravatar-api-key:/app/config/gravatar-api-key:ro
+    environment:
+      - NODE_ENV=development
+      - FRONTEND_URL=http://localhost:3000
+    command: >
+      sh -c "npm run server &
+             npm run dev"
+    profiles:
+      - dev

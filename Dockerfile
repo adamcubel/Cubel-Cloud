@@ -7,8 +7,8 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
-RUN npm ci --only=production=false
+# Install dependencies (including dev dependencies for build)
+RUN npm ci
 
 # Copy source code
 COPY . .
@@ -19,17 +19,32 @@ RUN npm run build
 # Production stage
 FROM nginx:alpine AS production
 
+# Install Node.js for the OIDC server
+RUN apk add --no-cache nodejs npm
+
 # Copy built application from builder stage
 COPY --from=builder /app/dist /usr/share/nginx/html
+
+# Copy server files and database schema
+COPY --from=builder /app/server /app/server
+COPY --from=builder /app/node_modules /app/node_modules
+COPY --from=builder /app/database /app/database
 
 # Copy nginx configuration
 COPY nginx.conf /etc/nginx/nginx.conf
 
-# Expose port 80
-EXPOSE 80
+# Create config directory for mounting
+RUN mkdir -p /app/config
 
-# Start nginx
-CMD ["nginx", "-g", "daemon off;"]
+# Copy startup script
+COPY docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
+
+# Expose ports
+EXPOSE 80 3001
+
+# Start both nginx and OIDC server
+CMD ["/docker-entrypoint.sh"]
 
 # Development stage (optional)
 FROM node:20-alpine AS development

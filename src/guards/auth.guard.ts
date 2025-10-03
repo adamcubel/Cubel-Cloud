@@ -1,7 +1,6 @@
-
-import { inject } from '@angular/core';
-import { CanActivateFn, Router } from '@angular/router';
-import { AuthService } from '../services/auth.service';
+import { inject } from "@angular/core";
+import { CanActivateFn, Router } from "@angular/router";
+import { AuthService } from "../services/auth.service";
 
 export const authGuard: CanActivateFn = () => {
   const authService = inject(AuthService);
@@ -12,5 +11,5 @@ export const authGuard: CanActivateFn = () => {
   }
 
   // Redirect to the login page
-  return router.parseUrl('/login');
+  return router.parseUrl("/login");
 };

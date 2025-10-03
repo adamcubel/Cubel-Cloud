@@ -1,48 +1,219 @@
-
 <div class="px-4 py-8">
   <div class="max-w-7xl mx-auto">
     <div class="text-center">
-      <h2 class="text-3xl font-extrabold text-slate-900 sm:text-4xl">
+      <h2 class="text-3xl font-extrabold text-gradient sm:text-4xl">
         Your Applications
       </h2>
-      <p class="mt-4 text-lg text-slate-600">
-        You have access to the following applications based on your '{{ currentUser()?.role }}' role.
+      <p class="mt-4 text-lg text-slate-900 dark:text-slate-100">
+        You have access to the following applications.
       </p>
     </div>
 
-    @if (applications().length > 0) {
-      <div class="mt-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
-        @for(app of applications(); track app.id) {
-          <a [href]="app.url" class="block bg-white rounded-lg shadow-lg overflow-hidden transform hover:-translate-y-1 transition-transform duration-300 ease-in-out">
-            <div class="p-6">
-              <div class="flex items-center">
-                <div class="flex-shrink-0 bg-primary/10 text-primary rounded-md p-3">
-                  <svg class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                    <path [attr.d]="app.icon"></path>
-                  </svg>
-                </div>
-                <div class="ml-4">
-                  <h3 class="text-lg font-medium text-slate-900">{{ app.name }}</h3>
+    @if (isUnvalidated()) {
+      <!-- Unvalidated user message -->
+      <div class="mt-12 max-w-2xl mx-auto">
+        <div
+          class="bg-yellow-50 dark:bg-yellow-900/20 border-l-4 border-yellow-400 p-6 rounded-r-lg"
+        >
+          <div class="flex">
+            <div class="flex-shrink-0">
+              <svg
+                class="h-6 w-6 text-yellow-400"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                aria-hidden="true"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                ></path>
+              </svg>
+            </div>
+            <div class="ml-3">
+              <h3
+                class="text-lg font-medium text-yellow-800 dark:text-yellow-300"
+              >
+                Account Pending Validation
+              </h3>
+              <div class="mt-2 text-sm text-yellow-700 dark:text-yellow-400">
+                <p>
+                  Your account has been created successfully, but it needs to be
+                  validated by an administrator before you can access
+                  applications.
+                </p>
+                <p class="mt-3">
+                  Please contact the administrator to validate your account:
+                </p>
+                <div class="mt-4">
+                  <a
+                    href="mailto:admin@cubel.org"
+                    class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-yellow-700 dark:text-yellow-300 bg-yellow-100 dark:bg-yellow-900/40 hover:bg-yellow-200 dark:hover:bg-yellow-900/60 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 transition-colors"
+                  >
+                    <svg
+                      class="mr-2 -ml-1 h-5 w-5"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                      ></path>
+                    </svg>
+                    Email Administrator
+                  </a>
                 </div>
               </div>
-              <p class="mt-4 text-sm text-slate-500">
-                {{ app.description }}
-              </p>
             </div>
-            <div class="px-6 py-4 bg-gray-50 text-right">
-                <span class="text-sm font-semibold text-primary hover:text-primary-dark">Launch App &rarr;</span>
+          </div>
+        </div>
+      </div>
+    } @else if (applications().length > 0) {
+      <div class="mt-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+        @for (app of applications(); track app.id) {
+          @if (app.accessible) {
+            <a
+              [href]="app.url"
+              [target]="isExternalUrl(app.url) ? '_blank' : '_self'"
+              [rel]="isExternalUrl(app.url) ? 'noopener noreferrer' : null"
+              class="block bg-white dark:bg-slate-800 rounded-lg shadow-lg overflow-hidden transform hover:-translate-y-1 transition-transform duration-300 ease-in-out"
+            >
+              <div class="p-6">
+                <div class="flex items-center">
+                  <div
+                    class="flex-shrink-0 bg-primary/10 text-primary rounded-md p-3 dark:bg-slate-100"
+                  >
+                    @if (isIconFilePath(app.icon)) {
+                      <!-- SVG file reference -->
+                      <img
+                        [src]="app.icon"
+                        [alt]="app.name + ' icon'"
+                        class="h-6 w-6"
+                      />
+                    } @else {
+                      <!-- Inline SVG path data -->
+                      <svg
+                        class="h-6 w-6"
+                        fill="currentColor"
+                        viewBox="0 0 24 24"
+                        aria-hidden="true"
+                      >
+                        <path [attr.d]="app.icon"></path>
+                      </svg>
+                    }
+                  </div>
+                  <div class="ml-4">
+                    <h3
+                      class="text-lg font-medium text-slate-900 dark:text-slate-100"
+                    >
+                      {{ app.name }}
+                    </h3>
+                  </div>
+                </div>
+                <p class="mt-4 text-sm text-slate-500 dark:text-slate-400">
+                  {{ app.description }}
+                </p>
+              </div>
+              <!-- <div class="px-6 py-4 bg-gray-50 dark:bg-slate-700 text-right">
+                <span
+                  class="text-sm font-semibold text-primary hover:text-primary-dark"
+                  >Launch App &rarr;</span
+                >
+              </div> -->
+            </a>
+          } @else {
+            <div
+              class="block bg-white dark:bg-slate-800 rounded-lg shadow-lg overflow-hidden opacity-60 cursor-not-allowed"
+              title="You do not have access to this application"
+            >
+              <div class="p-6">
+                <div class="flex items-center">
+                  <div
+                    class="flex-shrink-0 bg-slate-200 dark:bg-slate-700 text-slate-400 dark:text-slate-500 rounded-md p-3"
+                  >
+                    @if (isIconFilePath(app.icon)) {
+                      <!-- SVG file reference -->
+                      <img
+                        [src]="app.icon"
+                        [alt]="app.name + ' icon'"
+                        class="h-6 w-6 opacity-50"
+                      />
+                    } @else {
+                      <!-- Inline SVG path data -->
+                      <svg
+                        class="h-6 w-6"
+                        fill="currentColor"
+                        viewBox="0 0 24 24"
+                        aria-hidden="true"
+                      >
+                        <path [attr.d]="app.icon"></path>
+                      </svg>
+                    }
+                  </div>
+                  <div class="ml-4">
+                    <h3
+                      class="text-lg font-medium text-slate-500 dark:text-slate-400"
+                    >
+                      {{ app.name }}
+                    </h3>
+                  </div>
+                  <div class="ml-auto">
+                    <svg
+                      class="h-5 w-5 text-slate-400 dark:text-slate-500"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                      ></path>
+                    </svg>
+                  </div>
+                </div>
+                <p class="mt-4 text-sm text-slate-400 dark:text-slate-500">
+                  {{ app.description }}
+                </p>
+              </div>
+              <!-- <div class="px-6 py-4 bg-gray-50 dark:bg-slate-700 text-right">
+                <span class="text-sm font-semibold text-slate-400 dark:text-slate-500"
+                  >Access Restricted</span
+                >
+              </div> -->
             </div>
-          </a>
+          }
         }
       </div>
     } @else {
       <div class="mt-12 text-center">
-        <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-yellow-100">
-          <svg class="h-6 w-6 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+        <div
+          class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-yellow-100"
+        >
+          <svg
+            class="h-6 w-6 text-yellow-600"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            aria-hidden="true"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+            ></path>
           </svg>
         </div>
-        <h3 class="mt-2 text-lg font-medium text-slate-900">No Applications Found</h3>
+        <h3 class="mt-2 text-lg font-medium text-slate-900">
+          No Applications Found
+        </h3>
         <p class="mt-1 text-sm text-slate-500">
           There are no applications available for your current role.
         </p>

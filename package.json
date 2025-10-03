@@ -4,24 +4,32 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "ng serve",
+    "dev": "ng serve --proxy-config proxy.conf.json",
     "build": "ng build",
-    "preview": "ng serve --configuration=production"
+    "preview": "ng serve --configuration=production",
+    "server": "node server/oidc-server.cjs",
+    "dev:full": "concurrently \"npm run server\" \"npm run dev\""
   },
   "dependencies": {
+    "@angular/build": "~20.3.0",
+    "@angular/cli": "~20.3.0",
+    "@angular/common": "~20.3.0",
+    "@angular/compiler": "~20.3.0",
+    "@angular/compiler-cli": "~20.3.0",
+    "@angular/core": "~20.3.0",
+    "@angular/forms": "~20.3.0",
+    "@angular/platform-browser": "~20.3.0",
+    "@angular/router": "~20.3.0",
+    "angular-oauth2-oidc": "^20.0.2",
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "pg": "^8.16.3",
     "rxjs": "^7.8.2",
-    "@angular/compiler": "^20.3.0",
-    "@angular/platform-browser": "^20.3.0",
-    "@angular/router": "^20.3.2",
-    "@angular/core": "^20.3.0",
-    "@angular/common": "^20.3.0",
-    "@angular/build": "^20.3.0",
-    "@angular/cli": "^20.3.0",
-    "@angular/compiler-cli": "^20.3.0",
     "tailwindcss": "latest"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",
+    "concurrently": "^9.2.1",
     "typescript": "~5.8.2",
     "vite": "^6.2.0"
   }

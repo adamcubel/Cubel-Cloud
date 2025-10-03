@@ -1,93 +1,97 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <title>Cubel Cloud</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="icon" type="image/png" href="assets/icon.png" />
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      darkMode: 'class',
-      theme: {
-        extend: {
-          colors: {
-            primary: '#4309CA',
-            'primary-dark': '#3507a0',
-            'gradient-start': '#4309CA',
-            'gradient-end': '#FC6D27',
-            'dark-bg': '#1C1C1F',
+  <head>
+    <meta charset="utf-8" />
+    <title>Cubel Cloud</title>
+    <base href="/" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" type="image/png" href="assets/icon.png" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              primary: "#4309CA",
+              "primary-dark": "#3507a0",
+              "gradient-start": "#4309CA",
+              "gradient-end": "#FC6D27",
+              "dark-bg": "#1C1C1F",
+            },
+            backgroundImage: {
+              "gradient-diagonal":
+                "linear-gradient(37deg, #4309CA 37%, #00DBF8 100%)",
+              none: "none",
+            },
           },
-          backgroundImage: {
-            'gradient-diagonal': 'linear-gradient(37deg, #4309CA 37%, #00DBF8 100%)',
-            'none': 'none',
-          }
+        },
+        plugins: [
+          function ({ addUtilities }) {
+            addUtilities({
+              ".border-gradient-bottom": {
+                position: "relative",
+                "border-bottom": "2px solid transparent",
+              },
+              ".border-gradient-bottom::after": {
+                content: '""',
+                position: "absolute",
+                bottom: "-2px",
+                left: "0",
+                right: "0",
+                height: "2px",
+                background: "linear-gradient(37deg, #4309CA 37%, #00DBF8 100%)",
+                "border-radius": "1px",
+              },
+              ".text-gradient": {
+                background: "linear-gradient(25deg, #4309CA 20%, #00DBF8 100%)",
+                "background-clip": "text",
+                "-webkit-background-clip": "text",
+                "-webkit-text-fill-color": "transparent",
+                color: "transparent",
+              },
+              ".border-gradient-fade": {
+                position: "relative",
+                background: "transparent",
+              },
+              ".border-gradient-fade::before": {
+                content: '""',
+                position: "absolute",
+                inset: "0",
+                padding: "1px",
+                background:
+                  "linear-gradient(180deg, transparent 0%, transparent 50%, #4309CA 50%, #00DBF8 100%)",
+                "border-radius": "6px",
+                mask: "linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)",
+                "mask-composite": "xor",
+                "-webkit-mask":
+                  "linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)",
+                "-webkit-mask-composite": "xor",
+              },
+            });
+          },
+        ],
+      };
+    </script>
+    <script type="importmap">
+      {
+        "imports": {
+          "rxjs": "https://aistudiocdn.com/rxjs@^7.8.2?conditions=es2015",
+          "rxjs/operators": "https://aistudiocdn.com/rxjs@^7.8.2/operators?conditions=es2015",
+          "rxjs/ajax": "https://aistudiocdn.com/rxjs@^7.8.2/ajax?conditions=es2015",
+          "rxjs/webSocket": "https://aistudiocdn.com/rxjs@^7.8.2/webSocket?conditions=es2015",
+          "rxjs/testing": "https://aistudiocdn.com/rxjs@^7.8.2/testing?conditions=es2015",
+          "rxjs/fetch": "https://aistudiocdn.com/rxjs@^7.8.2/fetch?conditions=es2015",
+          "@angular/compiler": "https://next.esm.sh/@angular/compiler@^20.3.2?external=rxjs",
+          "@angular/platform-browser": "https://next.esm.sh/@angular/platform-browser@^20.3.2?external=rxjs",
+          "@angular/router": "https://next.esm.sh/@angular/router@^20.3.2?external=rxjs",
+          "@angular/core": "https://next.esm.sh/@angular/core@^20.3.2?external=rxjs",
+          "@angular/common": "https://next.esm.sh/@angular/common@^20.3.2?external=rxjs"
         }
-      },
-      plugins: [
-        function({ addUtilities }) {
-          addUtilities({
-            '.border-gradient-bottom': {
-              'position': 'relative',
-              'border-bottom': '2px solid transparent',
-            },
-            '.border-gradient-bottom::after': {
-              'content': '""',
-              'position': 'absolute',
-              'bottom': '-2px',
-              'left': '0',
-              'right': '0',
-              'height': '2px',
-              'background': 'linear-gradient(37deg, #4309CA 37%, #00DBF8 100%)',
-              'border-radius': '1px',
-            },
-            '.text-gradient': {
-              'background': 'linear-gradient(25deg, #4309CA 20%, #00DBF8 100%)',
-              'background-clip': 'text',
-              '-webkit-background-clip': 'text',
-              '-webkit-text-fill-color': 'transparent',
-              'color': 'transparent',
-            },
-            '.border-gradient-fade': {
-              'position': 'relative',
-              'background': 'transparent',
-            },
-            '.border-gradient-fade::before': {
-              'content': '""',
-              'position': 'absolute',
-              'inset': '0',
-              'padding': '1px',
-              'background': 'linear-gradient(180deg, transparent 0%, transparent 50%, #4309CA 50%, #00DBF8 100%)',
-              'border-radius': '6px',
-              'mask': 'linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)',
-              'mask-composite': 'xor',
-              '-webkit-mask': 'linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)',
-              '-webkit-mask-composite': 'xor',
-            }
-          })
-        }
-      ]
-    }
-  </script>
-<script type="importmap">
-{
-  "imports": {
-    "rxjs": "https://aistudiocdn.com/rxjs@^7.8.2?conditions=es2015",
-    "rxjs/operators": "https://aistudiocdn.com/rxjs@^7.8.2/operators?conditions=es2015",
-    "rxjs/ajax": "https://aistudiocdn.com/rxjs@^7.8.2/ajax?conditions=es2015",
-    "rxjs/webSocket": "https://aistudiocdn.com/rxjs@^7.8.2/webSocket?conditions=es2015",
-    "rxjs/testing": "https://aistudiocdn.com/rxjs@^7.8.2/testing?conditions=es2015",
-    "rxjs/fetch": "https://aistudiocdn.com/rxjs@^7.8.2/fetch?conditions=es2015",
-    "@angular/compiler": "https://next.esm.sh/@angular/compiler@^20.3.2?external=rxjs",
-    "@angular/platform-browser": "https://next.esm.sh/@angular/platform-browser@^20.3.2?external=rxjs",
-    "@angular/router": "https://next.esm.sh/@angular/router@^20.3.2?external=rxjs",
-    "@angular/core": "https://next.esm.sh/@angular/core@^20.3.2?external=rxjs",
-    "@angular/common": "https://next.esm.sh/@angular/common@^20.3.2?external=rxjs"
-  }
-}
-</script>
-</head>
-<body class="bg-slate-50 dark:bg-dark-bg text-slate-900 dark:text-slate-100">
-  <app-root></app-root>
-</body>
+      }
+    </script>
+  </head>
+  <body class="bg-slate-50 dark:bg-dark-bg text-slate-900 dark:text-slate-100">
+    <app-root></app-root>
+  </body>
 </html>

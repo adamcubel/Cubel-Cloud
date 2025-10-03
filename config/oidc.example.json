@@ -1,0 +1,18 @@
+{
+  "issuer": "https://your-keycloak-domain/realms/your-realm",
+  "clientId": "your-client-id",
+  "clientSecret": "your-client-secret-here",
+  "redirectUri": "http://localhost:3000/auth/callback",
+  "responseType": "code",
+  "scope": "openid profile email",
+  "requireHttps": true,
+  "showDebugInformation": false,
+  "strictDiscoveryDocumentValidation": true,
+  "skipIssuerCheck": false,
+  "disablePKCE": false,
+  "clearHashAfterLogin": true,
+  "logoutUrl": "http://localhost:3000/logout",
+  "customQueryParams": {
+    "audience": "your-api-audience"
+  }
+}

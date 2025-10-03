@@ -1,0 +1,48 @@
+{
+  "applications": [
+    {
+      "id": "kubernetes",
+      "name": "Kubernetes",
+      "description": "Container orchestration platform for automating deployment and scaling.",
+      "icon": "assets/kubernetes.svg",
+      "url": "https://kubernetes.example.com"
+    },
+    {
+      "id": "grafana",
+      "name": "Grafana",
+      "description": "Analytics and interactive visualization web application.",
+      "icon": "assets/grafana.svg",
+      "url": "https://grafana.example.com"
+    },
+    {
+      "id": "gitlab",
+      "name": "GitLab",
+      "description": "DevOps platform with built-in CI/CD and version control.",
+      "icon": "assets/gitlab.svg",
+      "url": "https://gitlab.example.com"
+    },
+    {
+      "id": "vault",
+      "name": "HashiCorp Vault",
+      "description": "Secure secrets management and data protection.",
+      "icon": "assets/vault.svg",
+      "url": "https://vault.example.com",
+      "private": true
+    },
+    {
+      "id": "dashboard",
+      "name": "Dashboard Analytics",
+      "description": "View key performance indicators and business metrics.",
+      "icon": "M3 13H5V11H3V13ZM3 17H5V15H3V17ZM3 9H5V7H3V9ZM7 13H17V11H7V13ZM7 17H17V15H7V17ZM7 7V9H17V7H7Z",
+      "url": "#/dashboard"
+    },
+    {
+      "id": "users",
+      "name": "User Management",
+      "description": "Administer user accounts, roles, and permissions.",
+      "icon": "M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z",
+      "url": "#/users",
+      "private": true
+    }
+  ]
+}
