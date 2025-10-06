@@ -40,6 +40,13 @@ export const APP_ROUTES: Routes = [
     canActivate: [guestGuard],
   },
   {
+    path: "contact",
+    loadComponent: () =>
+      import("../app/components/contact/contact").then(
+        (c) => c.ContactComponent,
+      ),
+  },
+  {
     path: "auth/callback",
     loadComponent: () =>
       import("./components/auth-callback/auth-callback.component").then(
