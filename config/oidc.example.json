@@ -12,7 +12,5 @@
   "disablePKCE": false,
   "clearHashAfterLogin": true,
   "logoutUrl": "http://localhost:3000/logout",
-  "customQueryParams": {
-    "audience": "your-api-audience"
-  }
+  "customQueryParams": {}
 }

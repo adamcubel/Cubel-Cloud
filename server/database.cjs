@@ -259,24 +259,71 @@ async function initializeSchema() {
     // Execute the schema SQL
     // Split by semicolons and execute each statement separately
     // (pg doesn't support multiple statements in a single query)
-    const statements = schemaSQL
-      .split(";")
-      .map((s) => s.trim())
-      .filter((s) => s.length > 0 && !s.startsWith("--"));
+
+    // First, remove all SQL comments (lines starting with --)
+    const lines = schemaSQL.split("\n");
+    const cleanedLines = lines.map((line) => {
+      // Remove everything after -- (SQL comment)
+      const commentIndex = line.indexOf("--");
+      if (commentIndex !== -1) {
+        return line.substring(0, commentIndex);
+      }
+      return line;
+    });
+
+    const cleanedSQL = cleanedLines.join("\n");
+
+    // Parse SQL statements, respecting dollar-quoted strings ($$)
+    const statements = [];
+    let currentStatement = "";
+    let inDollarQuote = false;
+
+    for (let i = 0; i < cleanedSQL.length; i++) {
+      const char = cleanedSQL[i];
+      const nextChar = cleanedSQL[i + 1];
+
+      // Check for dollar-quote delimiter $$
+      if (char === "$" && nextChar === "$") {
+        inDollarQuote = !inDollarQuote;
+        currentStatement += char;
+        continue;
+      }
+
+      // Check for semicolon (statement terminator) - only if not in dollar-quote
+      if (char === ";" && !inDollarQuote) {
+        const trimmed = currentStatement.trim();
+        if (trimmed.length > 0) {
+          statements.push(trimmed);
+        }
+        currentStatement = "";
+        continue;
+      }
+
+      currentStatement += char;
+    }
+
+    // Add any remaining statement
+    const trimmed = currentStatement.trim();
+    if (trimmed.length > 0) {
+      statements.push(trimmed);
+    }
 
     console.log(`[Database] Executing ${statements.length} SQL statements...`);
 
     for (let i = 0; i < statements.length; i++) {
       try {
+        const preview = statements[i].substring(0, 80).replace(/\s+/g, " ");
+        console.log(
+          `[Database] Statement ${i + 1}/${statements.length}: ${preview}...`,
+        );
         await pool.query(statements[i]);
+        console.log(`[Database] ✓ Statement ${i + 1} executed successfully`);
       } catch (error) {
         console.error(
-          `[Database] Error executing statement ${i + 1}:`,
+          `[Database] ✗ Error executing statement ${i + 1}:`,
           error.message,
         );
-        console.error(
-          `[Database] Statement: ${statements[i].substring(0, 100)}...`,
-        );
+        console.error(`[Database] Full statement:\n${statements[i]}`);
         throw error;
       }
     }
