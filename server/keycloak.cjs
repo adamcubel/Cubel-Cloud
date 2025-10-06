@@ -155,7 +155,6 @@ async function createUser(userData) {
       "VERIFY_EMAIL",
       "TERMS_AND_CONDITIONS",
       "UPDATE_PASSWORD",
-      "CONFIGURE_TOTP",
       "webauthn-register",
     ],
     groups: ["/apps/nextcloud", "/apps/ai", "/apps/rocketchat", "/apps/jitsi"],
@@ -282,7 +281,6 @@ async function sendPasswordResetEmail(userId) {
         "VERIFY_EMAIL",
         "TERMS_AND_CONDITIONS",
         "UPDATE_PASSWORD",
-        "CONFIGURE_TOTP",
         "webauthn-register",
       ]),
     });
