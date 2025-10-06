@@ -573,6 +573,61 @@ app.post("/api/access-requests/:id/approve", async (req, res) => {
   }
 
   try {
+    // First, get the access request details
+    const requestResult = await db.query(
+      `SELECT id, user_id, user_email, user_name, application_id, application_name, status
+       FROM access_requests
+       WHERE id = $1 AND status = 'pending'`,
+      [id],
+    );
+
+    if (requestResult.rows.length === 0) {
+      return res.status(404).json({
+        error: "Request not found",
+        message: "Access request not found or already processed",
+      });
+    }
+
+    const request = requestResult.rows[0];
+
+    // Add user to Keycloak group if Keycloak is available
+    let keycloakResult = null;
+    if (keycloak.isAvailable()) {
+      try {
+        console.log(
+          `[API] Adding user ${request.user_id} to Keycloak group: /apps/${request.application_id}`,
+        );
+
+        // The group path is /apps/{applicationId}
+        const groupPath = `/apps/${request.application_id}`;
+
+        await keycloak.addUserToGroup(request.user_id, groupPath);
+
+        keycloakResult = {
+          success: true,
+          groupPath,
+        };
+
+        console.log(`[API] ✓ User added to Keycloak group: ${groupPath}`);
+      } catch (error) {
+        console.error(
+          "[API] Failed to add user to Keycloak group:",
+          error.message,
+        );
+
+        // If Keycloak group assignment fails, return error without updating database
+        return res.status(500).json({
+          error: "Failed to grant access",
+          message: `Failed to add user to Keycloak group: ${error.message}`,
+          details:
+            "The access request was not approved. Please ensure the group exists in Keycloak.",
+        });
+      }
+    } else {
+      console.warn("[API] Keycloak not configured - skipping group assignment");
+    }
+
+    // Update the access request status in database
     const result = await db.query(
       `UPDATE access_requests
        SET status = 'approved', processed_at = NOW(), processed_by = $1
@@ -582,14 +637,16 @@ app.post("/api/access-requests/:id/approve", async (req, res) => {
       [processedBy, id],
     );
 
-    if (result.rows.length === 0) {
-      return res.status(404).json({
-        error: "Request not found",
-        message: "Access request not found or already processed",
-      });
+    const response = {
+      request: result.rows[0],
+    };
+
+    // Include Keycloak result in response
+    if (keycloakResult) {
+      response.keycloak = keycloakResult;
     }
 
-    res.json({ request: result.rows[0] });
+    res.json(response);
   } catch (error) {
     console.error("[API] Failed to approve access request:", error);
     res.status(500).json({

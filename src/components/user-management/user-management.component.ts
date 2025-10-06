@@ -9,19 +9,10 @@ import { CommonModule } from "@angular/common";
 import { HttpClient } from "@angular/common/http";
 import { AuthService } from "../../services/auth.service";
 import { ApplicationService } from "../../services/application.service";
-
-interface AccessRequest {
-  id: string;
-  userId: string;
-  userEmail: string;
-  userName: string;
-  applicationId: string;
-  applicationName: string;
-  status: "pending" | "approved" | "rejected";
-  requestedAt: Date;
-  processedAt?: Date;
-  processedBy?: string;
-}
+import {
+  AccessRequestService,
+  AccessRequest,
+} from "../../services/access-request.service";
 
 interface RegistrationRequest {
   id: string;
@@ -45,6 +36,7 @@ interface RegistrationRequest {
 export class UserManagementComponent implements OnInit {
   authService = inject(AuthService);
   applicationService = inject(ApplicationService);
+  accessRequestService = inject(AccessRequestService);
   http = inject(HttpClient);
 
   accessRequests = signal<AccessRequest[]>([]);
@@ -62,89 +54,61 @@ export class UserManagementComponent implements OnInit {
     this.isLoading.set(true);
     this.errorMessage.set(null);
 
-    try {
-      // TODO: Replace with actual API call
-      // Mock data for now
-      const mockRequests: AccessRequest[] = [
-        {
-          id: "1",
-          userId: "user-123",
-          userEmail: "john.doe@example.com",
-          userName: "John Doe",
-          applicationId: "rocketchat",
-          applicationName: "Rocket.Chat",
-          status: "pending",
-          requestedAt: new Date("2025-10-01T10:30:00"),
-        },
-        {
-          id: "2",
-          userId: "user-456",
-          userEmail: "jane.smith@example.com",
-          userName: "Jane Smith",
-          applicationId: "users",
-          applicationName: "User Management",
-          status: "pending",
-          requestedAt: new Date("2025-10-01T14:20:00"),
-        },
-      ];
-
-      this.accessRequests.set(mockRequests);
-    } catch (error) {
-      console.error("Failed to load access requests:", error);
-      this.errorMessage.set(
-        "Failed to load access requests. Please try again.",
-      );
-    } finally {
-      this.isLoading.set(false);
-    }
+    this.accessRequestService.getAllAccessRequests().subscribe({
+      next: (response) => {
+        this.accessRequests.set(response.requests);
+        this.isLoading.set(false);
+      },
+      error: (error) => {
+        console.error("Failed to load access requests:", error);
+        this.errorMessage.set(
+          "Failed to load access requests. Please try again.",
+        );
+        this.isLoading.set(false);
+      },
+    });
   }
 
   async approveRequest(request: AccessRequest) {
-    try {
-      // TODO: API call to approve request
-      console.log("Approving request:", request.id);
-
-      // Update the request status locally
-      this.accessRequests.update((requests) =>
-        requests.map((r) =>
-          r.id === request.id
-            ? {
-                ...r,
-                status: "approved",
-                processedAt: new Date(),
-                processedBy: this.authService.currentUser()?.email,
-              }
-            : r,
-        ),
-      );
-    } catch (error) {
-      console.error("Failed to approve request:", error);
-      alert("Failed to approve request. Please try again.");
+    const userEmail = this.authService.currentUser()?.email;
+    if (!userEmail) {
+      alert("Unable to determine current user");
+      return;
     }
+
+    this.accessRequestService
+      .approveAccessRequest(request.id, userEmail)
+      .subscribe({
+        next: () => {
+          this.loadAccessRequests();
+        },
+        error: (error) => {
+          console.error("Failed to approve request:", error);
+          alert("Failed to approve request. Please try again.");
+        },
+      });
   }
 
   async rejectRequest(request: AccessRequest) {
-    try {
-      // TODO: API call to reject request
-      console.log("Rejecting request:", request.id);
-
-      // Update the request status locally
-      this.accessRequests.update((requests) =>
-        requests.map((r) =>
-          r.id === request.id
-            ? {
-                ...r,
-                status: "rejected",
-                processedAt: new Date(),
-                processedBy: this.authService.currentUser()?.email,
-              }
-            : r,
-        ),
-      );
-    } catch (error) {
-      console.error("Failed to reject request:", error);
-      alert("Failed to reject request. Please try again.");
+    const userEmail = this.authService.currentUser()?.email;
+    if (!userEmail) {
+      alert("Unable to determine current user");
+      return;
     }
+
+    const notes = prompt("Rejection reason (optional):");
+
+    this.accessRequestService
+      .rejectAccessRequest(request.id, userEmail, notes || undefined)
+      .subscribe({
+        next: () => {
+          this.loadAccessRequests();
+        },
+        error: (error) => {
+          console.error("Failed to reject request:", error);
+          alert("Failed to reject request. Please try again.");
+        },
+      });
   }
 
   getPendingRequests(): AccessRequest[] {
