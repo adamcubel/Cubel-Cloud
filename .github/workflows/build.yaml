@@ -220,7 +220,7 @@ jobs:
         id: merge_info
         run: |
           # Get the most recent merge commit title
-          MERGE_TITLE=$(git log --merges --format=%s -n 1)
+          MERGE_TITLE=$(git log -1 --pretty=%B)
           echo "merge_title=${MERGE_TITLE}" >> $GITHUB_OUTPUT
           echo "Last merge commit: ${MERGE_TITLE}"
 
