@@ -2,8 +2,16 @@
   class="bg-white dark:bg-dark-bg border-t border-slate-200 dark:border-slate-700"
 >
   <div class="container mx-auto py-4 px-4 sm:px-6 lg:px-8">
-    <p class="text-center text-sm text-slate-500 dark:text-slate-400">
-      © {{ currentYear }} Cubel Cloud. All rights reserved.
-    </p>
+    <div class="flex flex-col items-center gap-2">
+      <p class="text-center text-sm text-slate-500 dark:text-slate-400">
+        © {{ currentYear }} Cubel Cloud. All rights reserved.
+        <a
+          routerLink="/contact"
+          class="text-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 underline transition-colors"
+        >
+          Contact Me
+        </a>
+      </p>
+    </div>
   </div>
 </footer>

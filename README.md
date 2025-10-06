@@ -38,27 +38,27 @@ Built with Angular 20, Node.js/Express, PostgreSQL, and Keycloak for enterprise-
 
 ```
 ==================================================================
-                    Angular Frontend (Port 80)              
-  - Applications Dashboard                                    
-  - User Management                                           
-  - Registration Forms                                        
+|                   Angular Frontend (Port 80)                   |
+|   - Applications Dashboard                                     |
+|   - User Management                                            |
+|   - Registration Forms                                         |
 ==================================================================
-                        
+
 
 ==================================================================
-                  Express Backend API (Port 3001)             
-  - OIDC Configuration Endpoints                              
-  - Registration Request Management                           
-  - Access Request Management                                 
-  - Keycloak Admin API Integration                            
+|                  Express Backend API (Port 3001)               |
+|   - OIDC Configuration Endpoints                               |
+|   - Registration Request Management                            |
+|   - Access Request Management                                  |
+|   - Keycloak Admin API Integration                             |
 ==================================================================
-                                    
+
 
 ==================================================================
-   PostgreSQL                              Keycloak        
-   - Users                              - Authentication   
-   - Requests                           - Authorization    
-   - Audit Trail                        - Group Management 
+|    PostgreSQL                             Keycloak             |
+|    - Users                                - Authentication     |
+|    - Requests                             - Authorization      |
+|    - Audit Trail                          - Group Management   |
 ==================================================================
 ```
 
@@ -345,21 +345,21 @@ The project includes a GitHub Actions workflow (`.github/workflows/build.yaml`) 
 
 ### On Pull Requests:
 
--  Validates PR title contains version tag (`[major]`, `[minor]`, or `[patch]`)
--  Runs pre-commit checks
--  Builds Docker image
--  Tests container startup and health endpoints
+- Validates PR title contains version tag (`[major]`, `[minor]`, or `[patch]`)
+- Runs pre-commit checks
+- Builds Docker image
+- Tests container startup and health endpoints
 
 ### On Merge to Main:
 
-- =� Calculates semantic version from PR title
-- <� Creates git tag
-- =� Creates GitHub release with notes
-- =3 Builds and pushes Docker images with three tags:
+- Calculates semantic version from PR title
+- Creates git tag
+- Creates GitHub release with notes
+- Builds and pushes Docker images with three tags:
   - `latest`
   - `v1.2.3` (semantic version)
   - `v1.2.3-20250106-abc1234` (full build ID)
--  Tests published image
+- Tests published image
 
 ## Development
 
@@ -403,7 +403,7 @@ npm run preview          # Preview production build
 
 ## Security Considerations
 
-### � Important Security Notes
+### Important Security Notes
 
 1. **Never commit secrets** - All `config/*.json` files (except examples) are gitignored
 2. **Use strong passwords** - Database and Keycloak credentials should be randomly generated
